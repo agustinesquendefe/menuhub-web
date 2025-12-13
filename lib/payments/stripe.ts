@@ -164,6 +164,23 @@ export async function getStripePrices() {
   }));
 }
 
+export async function getStripeOneTimePrices() {
+  const prices = await stripe.prices.list({
+    expand: ['data.product'],
+    active: true,
+    type: 'one_time'
+  });
+
+  return prices.data.map((price) => ({
+    id: price.id,
+    productId:
+      typeof price.product === 'string' ? price.product : price.product.id,
+    unitAmount: price.unit_amount,
+    currency: price.currency,
+    productName: typeof price.product === 'string' ? '' : price.product.name
+  }));
+}
+
 export async function getStripeProducts() {
   const products = await stripe.products.list({
     active: true,
