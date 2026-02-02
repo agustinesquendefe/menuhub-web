@@ -7,14 +7,15 @@ import { SubmitButton } from './submit-button';
 export const revalidate = 3600;
 
 export default async function PricingPage() {
-  // Get price from environment variable
-  const priceId = process.env.PRICE_ID;
+  // Get prices from environment variables
+  const subscriptionPriceId = process.env.PRICE_ID;
+  const setupPriceId = process.env.SETUP_PRICE_ID;
 
-  if (!priceId) {
+  if (!subscriptionPriceId) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-white to-neutral-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <p className="text-red-600 font-bold mb-4">Error: Precio no configurado</p>
+          <p className="text-red-600 font-bold mb-4">Error: Precios no configurados</p>
           <p className="text-gray-600">Variable de entorno requerida: PRICE_ID</p>
         </div>
       </main>
@@ -22,13 +23,19 @@ export default async function PricingPage() {
   }
 
   try {
-    // Fetch price details from Stripe
-    const price = await stripe.prices.retrieve(priceId, {
+    // Fetch subscription price details from Stripe
+    const subscriptionPrice = await stripe.prices.retrieve(subscriptionPriceId, {
       expand: ['product'],
     });
 
-    if (!price) {
-      throw new Error('No se pudo recuperar el precio de Stripe');
+    if (!subscriptionPrice) {
+      throw new Error('No se pudo recuperar el precio de suscripción de Stripe');
+    }
+
+    // Fetch setup price if available
+    let setupPrice = null;
+    if (setupPriceId) {
+      setupPrice = await stripe.prices.retrieve(setupPriceId);
     }
 
   return (
@@ -43,9 +50,10 @@ export default async function PricingPage() {
         {/* Single Plan Card */}
         <div className="max-w-2xl mx-auto">
           <PricingCard
-            price={price.unit_amount || 0}
-            interval={price.recurring?.interval || 'month'}
-            trialDays={price.recurring?.trial_period_days || 14}
+            subscriptionPrice={subscriptionPrice.unit_amount || 0}
+            setupPrice={setupPrice?.unit_amount || 0}
+            interval={subscriptionPrice.recurring?.interval || 'month'}
+            trialDays={subscriptionPrice.recurring?.trial_period_days || 14}
             features={[
               'Menú digital personalizado',
               'Administración completa de platos y precios',
@@ -55,7 +63,8 @@ export default async function PricingPage() {
               'Soporte por email',
               'Seguridad y respaldos incluidos',
             ]}
-            priceId={priceId}
+            subscriptionPriceId={subscriptionPriceId}
+            setupPriceId={setupPriceId}
           />
         </div>
 
@@ -66,7 +75,7 @@ export default async function PricingPage() {
             {[
               {
                 q: "¿Cuál es el costo total?",
-                a: `$${(price.unit_amount || 0) / 100}/mes más un cargo único de configuración que se cobra en el primer mes.`
+                a: `$${(setupPrice?.unit_amount || 0) / 100} de configuración inicial + $${(subscriptionPrice.unit_amount || 0) / 100}/mes`
               },
               {
                 q: "¿Hay período de prueba?",
@@ -99,7 +108,7 @@ export default async function PricingPage() {
           <p className="text-red-600 font-bold mb-4">Error al cargar el precio</p>
           <p className="text-gray-600 mb-4">No se pudo recuperar el precio desde Stripe.</p>
           <p className="text-sm text-gray-500">
-            Verifica que el PRICE_ID sea correcto en las variables de entorno.
+            Verifica que PRICE_ID esté correctamente configurado en las variables de entorno.
           </p>
           <pre className="mt-4 bg-red-50 p-4 rounded text-left text-sm overflow-auto">
             {String(error)}
@@ -112,19 +121,24 @@ export default async function PricingPage() {
 
 
 function PricingCard({
-  price,
+  subscriptionPrice,
+  setupPrice,
   interval,
   trialDays,
   features,
-  priceId,
+  subscriptionPriceId,
+  setupPriceId,
 }: {
-  price: number;
+  subscriptionPrice: number;
+  setupPrice: number;
   interval: string;
   trialDays: number;
   features: string[];
-  priceId: string;
+  subscriptionPriceId: string;
+  setupPriceId?: string;
 }) {
-  const monthlyPrice = price / 100;
+  const monthlyPrice = subscriptionPrice / 100;
+  const setupCost = setupPrice / 100;
 
   return (
     <div className="relative rounded-lg border border-orange-500 bg-white shadow-lg ring-2 ring-orange-100 p-8">
@@ -140,13 +154,21 @@ function PricingCard({
       {/* Pricing */}
       <div className="mb-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
         <div className="space-y-3">
+          {setupCost > 0 && (
+            <div className="flex justify-between text-base">
+              <span className="text-gray-700">Configuración inicial:</span>
+              <span className="font-semibold text-gray-900">${setupCost.toFixed(2)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-base">
             <span className="text-gray-700">Suscripción mensual:</span>
             <span className="font-semibold text-gray-900">${monthlyPrice.toFixed(2)}</span>
           </div>
-          <p className="text-xs text-gray-500">
-            Plus cargo único de configuración en el primer mes
-          </p>
+          {setupCost > 0 && (
+            <p className="text-xs text-gray-500">
+              El cargo de configuración se cobra solo una vez en el primer mes
+            </p>
+          )}
         </div>
       </div>
       
@@ -160,7 +182,8 @@ function PricingCard({
       </ul>
       
       <form action={checkoutAction} className="w-full">
-        <input type="hidden" name="priceId" value={priceId} />
+        <input type="hidden" name="priceId" value={subscriptionPriceId} />
+        {setupPriceId && <input type="hidden" name="setupPriceId" value={setupPriceId} />}
         <SubmitButton />
       </form>
     </div>

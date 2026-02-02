@@ -1,6 +1,6 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
+import { activityLogs, teamMembers, teams, users, categories, products } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -49,10 +49,11 @@ export async function getTeamByStripeCustomerId(customerId: string) {
 export async function updateTeamSubscription(
   teamId: number,
   subscriptionData: {
-    stripeSubscriptionId: string | null;
-    stripeProductId: string | null;
-    planName: string | null;
-    subscriptionStatus: string;
+    stripeSubscriptionId?: string | null;
+    stripeProductId?: string | null;
+    planName?: string | null;
+    subscriptionStatus?: string;
+    stripeConnectAccountId?: string | null;
   }
 ) {
   await db
@@ -127,4 +128,45 @@ export async function getTeamForUser() {
   });
 
   return result?.team || null;
+}
+
+export async function getCategories(teamId: number) {
+  return await db
+    .select()
+    .from(categories)
+    .where(eq(categories.teamId, teamId))
+    .orderBy(categories.position);
+}
+
+export async function getCategoriesWithProducts(teamId: number) {
+  const categoriesList = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.teamId, teamId))
+    .orderBy(categories.position);
+
+  const categoriesWithProducts = await Promise.all(
+    categoriesList.map(async (category) => {
+      const categoryProducts = await db
+        .select()
+        .from(products)
+        .where(eq(products.categoryId, category.id))
+        .orderBy(products.position);
+      
+      return {
+        ...category,
+        products: categoryProducts
+      };
+    })
+  );
+
+  return categoriesWithProducts;
+}
+
+export async function getProducts(categoryId: number) {
+  return await db
+    .select()
+    .from(products)
+    .where(eq(products.categoryId, categoryId))
+    .orderBy(products.position);
 }

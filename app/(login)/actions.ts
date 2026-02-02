@@ -93,8 +93,23 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ team: foundTeam, priceId });
+    const subscriptionPriceId = formData.get('priceId') as string;
+    const setupPriceId = formData.get('setupPriceId') as string | undefined;
+    return createCheckoutSession({ team: foundTeam, subscriptionPriceId, setupPriceId });
+  }
+
+  // Verify if user has an active subscription
+  if (foundTeam) {
+    const hasActiveSubscription =
+      foundTeam.subscriptionStatus === 'active' ||
+      foundTeam.subscriptionStatus === 'trialing';
+
+    if (!hasActiveSubscription) {
+      redirect('/pricing');
+    }
+  } else {
+    // No team found, redirect to pricing
+    redirect('/pricing');
   }
 
   redirect('/dashboard');
@@ -214,8 +229,20 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
   const redirectTo = formData.get('redirect') as string | null;
   if (redirectTo === 'checkout') {
-    const priceId = formData.get('priceId') as string;
-    return createCheckoutSession({ team: createdTeam, priceId });
+    const subscriptionPriceId = formData.get('priceId') as string;
+    const setupPriceId = formData.get('setupPriceId') as string | undefined;
+    return createCheckoutSession({ team: createdTeam, subscriptionPriceId, setupPriceId });
+  }
+
+  // New users without subscription should go to pricing
+  if (createdTeam) {
+    const hasActiveSubscription =
+      createdTeam.subscriptionStatus === 'active' ||
+      createdTeam.subscriptionStatus === 'trialing';
+
+    if (!hasActiveSubscription) {
+      redirect('/pricing');
+    }
   }
 
   redirect('/dashboard');

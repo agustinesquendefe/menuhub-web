@@ -13,25 +13,38 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 export async function createCheckoutSession({
   team,
-  priceId
+  subscriptionPriceId,
+  setupPriceId
 }: {
   team: Team | null;
-  priceId: string;
+  subscriptionPriceId: string;
+  setupPriceId?: string;
 }) {
   const user = await getUser();
 
   if (!team || !user) {
-    redirect(`/sign-up?redirect=checkout&priceId=${priceId}`);
+    redirect(`/sign-up?redirect=checkout&priceId=${subscriptionPriceId}`);
   }
+
+  const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+
+  // Add setup/flat fee if provided
+  if (setupPriceId) {
+    lineItems.push({
+      price: setupPriceId,
+      quantity: 1
+    });
+  }
+
+  // Add recurring subscription
+  lineItems.push({
+    price: subscriptionPriceId,
+    quantity: 1
+  });
 
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1
-      }
-    ],
+    line_items: lineItems,
     mode: 'subscription',
     success_url: `${process.env.BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.BASE_URL}/pricing`,
@@ -171,14 +184,20 @@ export async function getStripeOneTimePrices() {
     type: 'one_time'
   });
 
-  return prices.data.map((price) => ({
-    id: price.id,
-    productId:
-      typeof price.product === 'string' ? price.product : price.product.id,
-    unitAmount: price.unit_amount,
-    currency: price.currency,
-    productName: typeof price.product === 'string' ? '' : price.product.name
-  }));
+  return prices.data.map((price) => {
+    const productName = typeof price.product === 'string' 
+      ? '' 
+      : (price.product && 'name' in price.product ? price.product.name : '');
+    
+    return {
+      id: price.id,
+      productId:
+        typeof price.product === 'string' ? price.product : price.product?.id || '',
+      unitAmount: price.unit_amount,
+      currency: price.currency,
+      productName
+    };
+  });
 }
 
 export async function getStripeProducts() {
@@ -197,3 +216,69 @@ export async function getStripeProducts() {
         : product.default_price?.id
   }));
 }
+
+export async function createStripeConnectAccount(teamName: string, teamId: number) {
+  try {
+    // Build the URL safely
+    let businessUrl: string | undefined;
+    const baseUrl = process.env.BASE_URL;
+    
+    // Only include URL if BASE_URL is set and is a valid URL (not localhost for development)
+    if (baseUrl && !baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1')) {
+      businessUrl = `${baseUrl}/menu/${teamId}`;
+    }
+
+    // Create a restricted Stripe Connect account
+    const accountData: any = {
+      type: 'express',
+      country: 'ES',
+      business_type: 'individual',
+      business_profile: {
+        name: teamName
+      },
+      capabilities: {
+        card_payments: {
+          requested: true
+        },
+        transfers: {
+          requested: true
+        }
+      },
+      settings: {
+        payouts: {
+          schedule: {
+            interval: 'daily'
+          }
+        }
+      }
+    };
+
+    // Only add URL if we have a valid production URL
+    if (businessUrl) {
+      accountData.business_profile.url = businessUrl;
+    }
+
+    const account = await stripe.accounts.create(accountData);
+    return account.id;
+  } catch (error) {
+    console.error('Error creating Stripe Connect account:', error);
+    throw new Error('Failed to create Stripe Connect account');
+  }
+}
+
+export async function getStripeConnectAccountLink(connectAccountId: string, teamId: number) {
+  try {
+    const accountLink = await stripe.accountLinks.create({
+      account: connectAccountId,
+      type: 'account_onboarding',
+      refresh_url: `${process.env.BASE_URL}/dashboard/stripe-connect?reauth=true&teamId=${teamId}`,
+      return_url: `${process.env.BASE_URL}/dashboard/stripe-connect?onboarded=true&teamId=${teamId}`
+    } as any);
+
+    return accountLink.url;
+  } catch (error) {
+    console.error('Error creating Stripe Connect account link:', error);
+    throw new Error('Failed to create Stripe Connect account link');
+  }
+}
+

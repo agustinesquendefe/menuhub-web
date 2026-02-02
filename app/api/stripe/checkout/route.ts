@@ -3,7 +3,7 @@ import { db } from '@/lib/db/drizzle';
 import { users, teams, teamMembers } from '@/lib/db/schema';
 import { setSession } from '@/lib/auth/session';
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe } from '@/lib/payments/stripe';
+import { stripe, createStripeConnectAccount } from '@/lib/payments/stripe';
 import Stripe from 'stripe';
 
 export async function GET(request: NextRequest) {
@@ -66,14 +66,26 @@ export async function GET(request: NextRequest) {
 
     const userTeam = await db
       .select({
+        id: teams.id,
+        name: teams.name,
         teamId: teamMembers.teamId,
       })
       .from(teamMembers)
+      .innerJoin(teams, eq(teams.id, teamMembers.teamId))
       .where(eq(teamMembers.userId, user[0].id))
       .limit(1);
 
     if (userTeam.length === 0) {
       throw new Error('User is not associated with any team.');
+    }
+
+    // Create Stripe Connect account for the restaurant
+    let connectAccountId = null;
+    try {
+      connectAccountId = await createStripeConnectAccount(userTeam[0].name, userTeam[0].id);
+    } catch (connectError) {
+      console.error('Failed to create Stripe Connect account, continuing without it:', connectError);
+      // Continue without Connect account - it's not critical
     }
 
     await db
@@ -84,6 +96,7 @@ export async function GET(request: NextRequest) {
         stripeProductId: productId,
         planName: (plan.product as Stripe.Product).name,
         subscriptionStatus: subscription.status,
+        stripeConnectAccountId: connectAccountId || undefined,
         updatedAt: new Date(),
       })
       .where(eq(teams.id, userTeam[0].teamId));
