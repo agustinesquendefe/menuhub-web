@@ -94,8 +94,8 @@ export const products = pgTable('products', {
     .references(() => teams.id),
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
-  price: decimal('price', { precision: 10, scale: 2 }).notNull(),
   image: text('image'),
+  showPicture: boolean('show_picture').notNull().default(true),
   position: integer('position').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -186,6 +186,72 @@ export type TeamDataWithMembers = Team & {
     user: Pick<User, 'id' | 'name' | 'email'>;
   })[];
 };
+
+// Tabla de impuestos (local y Stripe)
+export const taxes = pgTable('taxes', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  percentage: decimal('percentage', { precision: 5, scale: 2 }).notNull(),
+  isStripe: boolean('is_stripe').notNull().default(false),
+  stripeTaxId: varchar('stripe_tax_id', { length: 100 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Tabla de precios (por si hay variantes o cambios futuros)
+export const prices = pgTable('prices', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Relación producto-impuesto (muchos a muchos)
+export const productTaxes = pgTable('product_taxes', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id),
+  taxId: integer('tax_id').notNull().references(() => taxes.id),
+});
+
+// Relaciones
+export const taxesRelations = relations(taxes, ({ one, many }) => ({
+  team: one(teams, {
+    fields: [taxes.teamId],
+    references: [teams.id],
+  }),
+  productTaxes: many(productTaxes),
+}));
+
+export const pricesRelations = relations(prices, ({ one }) => ({
+  product: one(products, {
+    fields: [prices.productId],
+    references: [products.id],
+  }),
+}));
+
+export const productTaxesRelations = relations(productTaxes, ({ one }) => ({
+  product: one(products, {
+    fields: [productTaxes.productId],
+    references: [products.id],
+  }),
+  tax: one(taxes, {
+    fields: [productTaxes.taxId],
+    references: [taxes.id],
+  }),
+}));
+
+export type Tax = typeof taxes.$inferSelect;
+export type NewTax = typeof taxes.$inferInsert;
+export type Price = typeof prices.$inferSelect;
+export type NewPrice = typeof prices.$inferInsert;
+export type ProductTax = typeof productTaxes.$inferSelect;
+export type NewProductTax = typeof productTaxes.$inferInsert;
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',

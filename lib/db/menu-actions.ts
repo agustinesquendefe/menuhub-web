@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
-import { categories, products, NewCategory, NewProduct } from '@/lib/db/schema';
+import { categories, products, NewCategory, NewProduct, prices, taxes, productTaxes, NewPrice, NewProductTax } from '@/lib/db/schema';
 import { validatedActionWithUser } from '@/lib/auth/middleware';
 import { getUserWithTeam } from '@/lib/db/queries';
 import { eq, and } from 'drizzle-orm';
@@ -59,20 +59,22 @@ const createProductSchema = z.object({
   name: z.string().min(1, 'Product name is required').max(100),
   description: z.string().optional(),
   price: z.string().transform(v => parseFloat(v)).pipe(z.number().positive('Price must be positive')),
+  currency: z.string().default('MXN'),
   image: z.string().optional(),
+  taxIds: z.array(z.number()).optional(), // IDs de impuestos a asociar
 });
 
 export const createProduct = validatedActionWithUser(
   createProductSchema,
   async (data, _, user) => {
-    const { categoryId, name, description, price, image } = data;
+    const { categoryId, name, description, price, currency, image, taxIds } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
     }
 
-    // Verify that the category belongs to the user's team
+    // Verificar que la categoría pertenezca al equipo del usuario
     const category = await db
       .select()
       .from(categories)
@@ -88,7 +90,7 @@ export const createProduct = validatedActionWithUser(
       return { error: 'Category not found or does not belong to your team' };
     }
 
-    // Get the highest position for this category
+    // Obtener la posición más alta para esta categoría
     const lastProduct = await db
       .select({ position: products.position })
       .from(products)
@@ -99,12 +101,12 @@ export const createProduct = validatedActionWithUser(
       ? Math.max(...lastProduct.map(p => p.position)) + 1 
       : 0;
 
+    // Crear el producto (sin el campo price)
     const newProduct: NewProduct = {
       categoryId,
       teamId: userWithTeam.teamId,
       name,
       description: description || null,
-      price: price.toString(),
       image: image || null,
       position: nextPosition,
       isActive: true,
@@ -117,6 +119,24 @@ export const createProduct = validatedActionWithUser(
 
     if (!createdProduct) {
       return { error: 'Failed to create product' };
+    }
+
+    // Crear el precio asociado
+    const newPrice: NewPrice = {
+      productId: createdProduct.id,
+      amount: price.toString(),
+      currency,
+      isActive: true,
+    };
+    await db.insert(prices).values(newPrice);
+
+    // Asociar impuestos si se proporcionan
+    if (taxIds && Array.isArray(taxIds) && taxIds.length > 0) {
+      const productTaxRows: NewProductTax[] = taxIds.map((taxId) => ({
+        productId: createdProduct.id,
+        taxId,
+      }));
+      await db.insert(productTaxes).values(productTaxRows);
     }
 
     return { success: 'Product created successfully', productId: createdProduct.id };
@@ -208,7 +228,6 @@ export const updateProduct = validatedActionWithUser(
       .set({
         name,
         description: description || null,
-        price: price.toString(),
         image: image || null,
         isActive: isActive !== undefined ? isActive : true,
         updatedAt: new Date(),
