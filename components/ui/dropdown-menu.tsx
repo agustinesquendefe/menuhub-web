@@ -23,6 +23,9 @@ function DropdownMenuPortal({
 function DropdownMenuTrigger({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Trigger>) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
   return (
     <DropdownMenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"

@@ -1,6 +1,6 @@
 import { desc, and, eq, isNull } from 'drizzle-orm';
 import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users, categories, products } from './schema';
+import { activityLogs, teamMembers, teams, users, categories, products, sizes, extras, additions, productSizes, productExtras, productAdditions } from './schema';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth/session';
 
@@ -152,15 +152,50 @@ export async function getCategoriesWithProducts(teamId: number) {
         .from(products)
         .where(eq(products.categoryId, category.id))
         .orderBy(products.position);
-      
+
+      const productsWithAssociations = await Promise.all(
+        categoryProducts.map(async (product) => {
+          const [sizeRows, extraRows, additionRows] = await Promise.all([
+            db.select({ size: sizes })
+              .from(productSizes)
+              .innerJoin(sizes, eq(productSizes.sizeId, sizes.id))
+              .where(eq(productSizes.productId, product.id)),
+            db.select({ extra: extras })
+              .from(productExtras)
+              .innerJoin(extras, eq(productExtras.extraId, extras.id))
+              .where(eq(productExtras.productId, product.id)),
+            db.select({ addition: additions })
+              .from(productAdditions)
+              .innerJoin(additions, eq(productAdditions.additionId, additions.id))
+              .where(eq(productAdditions.productId, product.id)),
+          ]);
+
+          return {
+            ...product,
+            sizes: sizeRows.map(r => r.size),
+            extras: extraRows.map(r => r.extra),
+            additions: additionRows.map(r => r.addition),
+          };
+        })
+      );
+
       return {
         ...category,
-        products: categoryProducts
+        products: productsWithAssociations,
       };
     })
   );
 
   return categoriesWithProducts;
+}
+
+export async function getTeamCatalog(teamId: number) {
+  const [teamSizes, teamExtras, teamAdditions] = await Promise.all([
+    db.select().from(sizes).where(eq(sizes.teamId, teamId)).orderBy(sizes.position),
+    db.select().from(extras).where(eq(extras.teamId, teamId)).orderBy(extras.position),
+    db.select().from(additions).where(eq(additions.teamId, teamId)).orderBy(additions.position),
+  ]);
+  return { sizes: teamSizes, extras: teamExtras, additions: teamAdditions };
 }
 
 export async function getProducts(categoryId: number) {

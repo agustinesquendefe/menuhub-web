@@ -95,6 +95,8 @@ export const products = pgTable('products', {
   name: varchar('name', { length: 100 }).notNull(),
   description: text('description'),
   image: text('image'),
+  price: decimal('price', { precision: 10, scale: 2 }),
+  currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
   showPicture: boolean('show_picture').notNull().default(true),
   position: integer('position').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
@@ -252,6 +254,115 @@ export type Price = typeof prices.$inferSelect;
 export type NewPrice = typeof prices.$inferInsert;
 export type ProductTax = typeof productTaxes.$inferSelect;
 export type NewProductTax = typeof productTaxes.$inferInsert;
+
+// ─── Sizes ────────────────────────────────────────────────────────────────────
+export const sizes = pgTable('sizes', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  image: text('image'),
+  showPicture: boolean('show_picture').notNull().default(false),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
+  position: integer('position').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ─── Extras ───────────────────────────────────────────────────────────────────
+export const extras = pgTable('extras', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  image: text('image'),
+  showPicture: boolean('show_picture').notNull().default(false),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
+  position: integer('position').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ─── Additions ────────────────────────────────────────────────────────────────
+export const additions = pgTable('additions', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => teams.id),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  image: text('image'),
+  showPicture: boolean('show_picture').notNull().default(false),
+  price: decimal('price', { precision: 10, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
+  position: integer('position').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ─── Junction tables ──────────────────────────────────────────────────────────
+export const productSizes = pgTable('product_sizes', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  sizeId: integer('size_id').notNull().references(() => sizes.id, { onDelete: 'cascade' }),
+});
+
+export const productExtras = pgTable('product_extras', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  extraId: integer('extra_id').notNull().references(() => extras.id, { onDelete: 'cascade' }),
+});
+
+export const productAdditions = pgTable('product_additions', {
+  id: serial('id').primaryKey(),
+  productId: integer('product_id').notNull().references(() => products.id, { onDelete: 'cascade' }),
+  additionId: integer('addition_id').notNull().references(() => additions.id, { onDelete: 'cascade' }),
+});
+
+// ─── Relations ────────────────────────────────────────────────────────────────
+export const sizesRelations = relations(sizes, ({ one, many }) => ({
+  team: one(teams, { fields: [sizes.teamId], references: [teams.id] }),
+  productSizes: many(productSizes),
+}));
+
+export const extrasRelations = relations(extras, ({ one, many }) => ({
+  team: one(teams, { fields: [extras.teamId], references: [teams.id] }),
+  productExtras: many(productExtras),
+}));
+
+export const additionsRelations = relations(additions, ({ one, many }) => ({
+  team: one(teams, { fields: [additions.teamId], references: [teams.id] }),
+  productAdditions: many(productAdditions),
+}));
+
+export const productSizesRelations = relations(productSizes, ({ one }) => ({
+  product: one(products, { fields: [productSizes.productId], references: [products.id] }),
+  size: one(sizes, { fields: [productSizes.sizeId], references: [sizes.id] }),
+}));
+
+export const productExtrasRelations = relations(productExtras, ({ one }) => ({
+  product: one(products, { fields: [productExtras.productId], references: [products.id] }),
+  extra: one(extras, { fields: [productExtras.extraId], references: [extras.id] }),
+}));
+
+export const productAdditionsRelations = relations(productAdditions, ({ one }) => ({
+  product: one(products, { fields: [productAdditions.productId], references: [products.id] }),
+  addition: one(additions, { fields: [productAdditions.additionId], references: [additions.id] }),
+}));
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type Size = typeof sizes.$inferSelect;
+export type NewSize = typeof sizes.$inferInsert;
+export type Extra = typeof extras.$inferSelect;
+export type NewExtra = typeof extras.$inferInsert;
+export type Addition = typeof additions.$inferSelect;
+export type NewAddition = typeof additions.$inferInsert;
+export type ProductSize = typeof productSizes.$inferSelect;
+export type ProductExtra = typeof productExtras.$inferSelect;
+export type ProductAddition = typeof productAdditions.$inferSelect;
 
 export enum ActivityType {
   SIGN_UP = 'SIGN_UP',

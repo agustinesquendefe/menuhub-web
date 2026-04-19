@@ -2,10 +2,11 @@
 
 import { z } from 'zod';
 import { db } from '@/lib/db/drizzle';
-import { categories, products, NewCategory, NewProduct, prices, taxes, productTaxes, NewPrice, NewProductTax } from '@/lib/db/schema';
+import { categories, products, NewCategory, NewProduct, prices, taxes, productTaxes, NewPrice, NewProductTax, productSizes, productExtras, productAdditions } from '@/lib/db/schema';
 import { validatedActionWithUser } from '@/lib/auth/middleware';
 import { getUserWithTeam } from '@/lib/db/queries';
 import { eq, and } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 const createCategorySchema = z.object({
   name: z.string().min(1, 'Category name is required').max(100),
@@ -61,13 +62,14 @@ const createProductSchema = z.object({
   price: z.string().transform(v => parseFloat(v)).pipe(z.number().positive('Price must be positive')),
   currency: z.string().default('MXN'),
   image: z.string().optional(),
+  showPicture: z.coerce.boolean().optional(),
   taxIds: z.array(z.number()).optional(), // IDs de impuestos a asociar
 });
 
 export const createProduct = validatedActionWithUser(
   createProductSchema,
   async (data, _, user) => {
-    const { categoryId, name, description, price, currency, image, taxIds } = data;
+    const { categoryId, name, description, price, currency, image, showPicture, taxIds } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
     if (!userWithTeam?.teamId) {
@@ -101,13 +103,16 @@ export const createProduct = validatedActionWithUser(
       ? Math.max(...lastProduct.map(p => p.position)) + 1 
       : 0;
 
-    // Crear el producto (sin el campo price)
+    // Crear el producto con el precio incluido
     const newProduct: NewProduct = {
       categoryId,
       teamId: userWithTeam.teamId,
       name,
       description: description || null,
       image: image || null,
+      price: price.toString(),
+      currency,
+      showPicture: showPicture !== undefined ? showPicture : true,
       position: nextPosition,
       isActive: true,
     };
@@ -121,15 +126,6 @@ export const createProduct = validatedActionWithUser(
       return { error: 'Failed to create product' };
     }
 
-    // Crear el precio asociado
-    const newPrice: NewPrice = {
-      productId: createdProduct.id,
-      amount: price.toString(),
-      currency,
-      isActive: true,
-    };
-    await db.insert(prices).values(newPrice);
-
     // Asociar impuestos si se proporcionan
     if (taxIds && Array.isArray(taxIds) && taxIds.length > 0) {
       const productTaxRows: NewProductTax[] = taxIds.map((taxId) => ({
@@ -139,6 +135,7 @@ export const createProduct = validatedActionWithUser(
       await db.insert(productTaxes).values(productTaxRows);
     }
 
+    revalidatePath('/dashboard/menu');
     return { success: 'Product created successfully', productId: createdProduct.id };
   }
 );
@@ -189,19 +186,27 @@ export const updateCategory = validatedActionWithUser(
   }
 );
 
+const idListTransform = z.string().optional().transform(v =>
+  v ? v.split(',').map(Number).filter(Boolean) : []
+);
+
 const updateProductSchema = z.object({
   productId: z.coerce.number(),
   name: z.string().min(1, 'Product name is required').max(100),
   description: z.string().optional(),
   price: z.string().transform(v => parseFloat(v)).pipe(z.number().positive('Price must be positive')),
   image: z.string().optional(),
-  isActive: z.boolean().optional(),
+  showPicture: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  isActive: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  sizeIds: idListTransform,
+  extraIds: idListTransform,
+  additionIds: idListTransform,
 });
 
 export const updateProduct = validatedActionWithUser(
   updateProductSchema,
   async (data, _, user) => {
-    const { productId, name, description, price, image, isActive } = data;
+    const { productId, name, description, price, image, showPicture, isActive, sizeIds, extraIds, additionIds } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
     if (!userWithTeam?.teamId) {
@@ -229,11 +234,32 @@ export const updateProduct = validatedActionWithUser(
         name,
         description: description || null,
         image: image || null,
+        price: price.toString(),
+        showPicture: showPicture !== undefined ? showPicture : true,
         isActive: isActive !== undefined ? isActive : true,
         updatedAt: new Date(),
       })
       .where(eq(products.id, productId));
 
+    // Sync sizes
+    await db.delete(productSizes).where(eq(productSizes.productId, productId));
+    if (sizeIds.length > 0) {
+      await db.insert(productSizes).values(sizeIds.map(sizeId => ({ productId, sizeId })));
+    }
+
+    // Sync extras
+    await db.delete(productExtras).where(eq(productExtras.productId, productId));
+    if (extraIds.length > 0) {
+      await db.insert(productExtras).values(extraIds.map(extraId => ({ productId, extraId })));
+    }
+
+    // Sync additions
+    await db.delete(productAdditions).where(eq(productAdditions.productId, productId));
+    if (additionIds.length > 0) {
+      await db.insert(productAdditions).values(additionIds.map(additionId => ({ productId, additionId })));
+    }
+
+    revalidatePath('/dashboard/menu');
     return { success: 'Product updated successfully' };
   }
 );

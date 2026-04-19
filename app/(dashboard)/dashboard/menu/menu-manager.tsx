@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,19 +16,48 @@ import {
   deleteCategory,
   deleteProduct,
 } from '@/lib/db/menu-actions';
-import { Category, Product } from '@/lib/db/schema';
+import { Category, Product, Size, Extra, Addition } from '@/lib/db/schema';
 import type { ActionState } from '@/lib/auth/middleware';
+import EditProductForm from '@/components/ui/menu/EditProductForm';
+import AddProductForm from '@/components/ui/menu/AddProductForm';
+import EditCategoryForm from '@/components/ui/menu/EditCategoryForm';
+import CatalogManager from '@/components/ui/menu/CatalogManager';
+
+interface ProductWithAssociations extends Product {
+  sizes: Size[];
+  extras: Extra[];
+  additions: Addition[];
+}
+
+interface CategoryWithProducts extends Category {
+  products: ProductWithAssociations[];
+}
+
+interface TeamCatalog {
+  sizes: Size[];
+  extras: Extra[];
+  additions: Addition[];
+}
 
 interface MenuManagerProps {
   teamId: number;
-  initialCategories: (Category & { products: Product[] })[];
+  initialCategories: CategoryWithProducts[];
+  teamCatalog: TeamCatalog;
 }
 
-export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
+type Tab = 'menu' | 'catalog';
+
+export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuManagerProps) {
+  const [tab, setTab] = useState<Tab>('menu');
   const [categories, setCategories] = useState(initialCategories);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<number | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+
+  // Sincronizar con datos frescos del servidor tras router.refresh()
+  useEffect(() => {
+    setCategories(initialCategories);
+  }, [initialCategories]);
 
   // Category form state
   const [categoryState, categoryAction, categoryPending] = useActionState<ActionState, FormData>(
@@ -69,14 +99,46 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Tab switcher */}
+      <div className="flex gap-1 border-b">
+        <button
+          type="button"
+          onClick={() => setTab('menu')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${tab === 'menu' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          Menú
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('catalog')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${tab === 'catalog' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          Catálogo
+        </button>
+      </div>
+
+      {tab === 'catalog' && (
+        <CatalogManager
+          initialSizes={teamCatalog.sizes}
+          initialExtras={teamCatalog.extras}
+          initialAdditions={teamCatalog.additions}
+        />
+      )}
+
+      {tab === 'menu' && (
+      <div className="space-y-8">
       {/* Add Category Section */}
       <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Crear Nueva Categoría</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          Crear Nueva Categoría
+        </h2>
         <form action={categoryAction} className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <div>
-              <Label htmlFor="cat-name">Nombre de la Categoría</Label>
+              <Label htmlFor="cat-name">
+                Nombre de la Categoría
+              </Label>
               <Input
                 id="cat-name"
                 name="name"
@@ -87,7 +149,9 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
               />
             </div>
             <div>
-              <Label htmlFor="cat-desc">Descripción (opcional)</Label>
+              <Label htmlFor="cat-desc">
+                Descripción (opcional)
+              </Label>
               <Input
                 id="cat-desc"
                 name="description"
@@ -98,7 +162,9 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
             </div>
           </div>
           {categoryState?.error && (
-            <div className="text-red-500 text-sm">{categoryState.error}</div>
+            <div className="text-red-500 text-sm">
+              {categoryState.error}
+            </div>
           )}
           <Button
             type="submit"
@@ -113,7 +179,9 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
 
       {/* Categories List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Categorías y Productos</h2>
+        <h2 className="text-xl font-semibold">
+          Categorías y Productos
+        </h2>
         {categories.length === 0 ? (
           <p className="text-gray-500">No hay categorías aún. Crea una para comenzar.</p>
         ) : (
@@ -123,7 +191,9 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
                 {/* Category Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex-1 cursor-pointer" onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}>
-                    <h3 className="font-semibold text-lg">{category.name}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {category.name}
+                    </h3>
                     {category.description && (
                       <p className="text-sm text-gray-600 mt-1">{category.description}</p>
                     )}
@@ -133,6 +203,7 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
                     <Button
                       variant="outline"
                       size="sm"
+                      className='cursor-pointer'
                       onClick={() => setEditingCategory(editingCategory === category.id ? null : category.id)}
                     >
                       <Edit2 className="w-4 h-4" />
@@ -141,7 +212,7 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDeleteCategory(category.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-100 cursor-pointer"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -155,146 +226,75 @@ export function MenuManager({ teamId, initialCategories }: MenuManagerProps) {
                   </div>
                 )}
 
-                {/* Products List */}
+                {/* Products List x*/}
                 {expandedCategory === category.id && (
                   <div className="mt-4 pt-4 border-t">
                     <div className="space-y-3">
                       {category.products.length === 0 ? (
-                        <p className="text-sm text-gray-500">Sin productos</p>
+                        <p className="text-sm text-gray-500">There are not products</p>
                       ) : (
                         category.products.map(product => (
                           <div key={product.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="font-medium">{product.name}</p>
-                              {product.description && (
-                                <p className="text-sm text-gray-600">{product.description}</p>
-                              )}
-                              <p className="text-sm font-semibold text-orange-600 mt-1">${product.price}</p>
-                            </div>
-                            <div className="flex gap-2 ml-4">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setEditingProduct(editingProduct === product.id ? null : product.id)}
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteProduct(product.id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            {editingProduct === product.id ? (
+                              <div className="w-full">
+                                <EditProductForm product={product} categoryId={category.id} teamId={teamId} catalog={teamCatalog} onClose={() => setEditingProduct(null)} />
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex-1">
+                                  <p className="font-medium">{product.name}</p>
+                                  {product.description && (
+                                    <p className="text-sm text-gray-600">{product.description}</p>
+                                  )}
+                                  {product.price && (
+                                    <p className="text-sm font-semibold text-orange-600 mt-1">
+                                      {product.currency === 'MXN' ? '$' : product.currency + ' '}
+                                      {product.price}
+                                    </p>
+                                  )}
+                                </div>
+                                <div className="flex gap-2 ml-4">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className='cursor-pointer'
+                                    onClick={() => setEditingProduct(editingProduct === product.id ? null : product.id)}
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-100 cursor-pointer"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </>
+                            )}
                           </div>
                         ))
                       )}
                     </div>
 
                     {/* Add Product Form */}
-                    <div className="mt-4 pt-4 border-t">
-                      <AddProductForm categoryId={category.id} categoryName={category.name} />
-                    </div>
+                    {/* {addNewProduct && (
+                      <div className="mt-4 pt-4 border-t">
+                        <AddProductForm categoryId={category.id} categoryName={category.name} teamId={teamId} />
+                      </div>
+                    )} */}
+
                   </div>
                 )}
+
               </div>
             </Card>
           ))
         )}
       </div>
+      </div>
+      )}
     </div>
-  );
-}
-
-function EditCategoryForm({ category, onClose }: { category: Category; onClose: () => void }) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(updateCategory, { error: '' });
-
-  return (
-    <form action={action} className="space-y-3">
-      <input type="hidden" name="categoryId" value={category.id} />
-      <div>
-        <Label htmlFor="edit-cat-name">Nombre</Label>
-        <Input
-          id="edit-cat-name"
-          name="name"
-          defaultValue={category.name}
-          required
-          className="mt-1"
-        />
-      </div>
-      <div>
-        <Label htmlFor="edit-cat-desc">Descripción</Label>
-        <Input
-          id="edit-cat-desc"
-          name="description"
-          defaultValue={category.description || ''}
-          className="mt-1"
-        />
-      </div>
-      {state?.error && <p className="text-red-500 text-sm">{state.error}</p>}
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar'}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={onClose}>
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-    </form>
-  );
-}
-
-function AddProductForm({ categoryId, categoryName }: { categoryId: number; categoryName: string }) {
-  const [state, action, pending] = useActionState<ActionState, FormData>(createProduct, { error: '' });
-
-  return (
-    <form action={action} className="space-y-3 bg-white p-3 rounded-lg border border-dashed">
-      <h4 className="font-medium">Agregar Producto a {categoryName}</h4>
-      <input type="hidden" name="categoryId" value={categoryId} />
-      
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <Label htmlFor={`prod-name-${categoryId}`} className="text-sm">Nombre</Label>
-          <Input
-            id={`prod-name-${categoryId}`}
-            name="name"
-            placeholder="Nombre del producto"
-            required
-            className="mt-1 text-sm"
-          />
-        </div>
-        <div>
-          <Label htmlFor={`prod-price-${categoryId}`} className="text-sm">Precio</Label>
-          <Input
-            id={`prod-price-${categoryId}`}
-            name="price"
-            placeholder="0.00"
-            type="number"
-            step="0.01"
-            required
-            className="mt-1 text-sm"
-          />
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor={`prod-desc-${categoryId}`} className="text-sm">Descripción (opcional)</Label>
-        <Input
-          id={`prod-desc-${categoryId}`}
-          name="description"
-          placeholder="Descripción del producto"
-          className="mt-1 text-sm"
-        />
-      </div>
-
-      {state?.error && <p className="text-red-500 text-sm">{state.error}</p>}
-
-      <Button type="submit" size="sm" disabled={pending} className="w-full">
-        <Plus className="w-4 h-4 mr-2" />
-        {pending ? 'Agregando...' : 'Agregar Producto'}
-      </Button>
-    </form>
   );
 }

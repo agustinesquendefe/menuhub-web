@@ -1,5 +1,5 @@
 import { getUser } from '@/lib/db/queries';
-import { getCategoriesWithProducts, getUserWithTeam } from '@/lib/db/queries';
+import { getCategoriesWithProducts, getUserWithTeam, getTeamCatalog } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { MenuManager } from './menu-manager';
 
@@ -18,7 +18,10 @@ export default async function MenuPage() {
     redirect('/dashboard');
   }
 
-  const categoriesWithProducts = await getCategoriesWithProducts(userWithTeam.teamId);
+  const [categoriesWithProducts, teamCatalog] = await Promise.all([
+    getCategoriesWithProducts(userWithTeam.teamId),
+    getTeamCatalog(userWithTeam.teamId),
+  ]);
 
   return (
     <div className="py-6">
@@ -29,6 +32,7 @@ export default async function MenuPage() {
         <MenuManager 
           teamId={userWithTeam.teamId}
           initialCategories={categoriesWithProducts}
+          teamCatalog={teamCatalog}
         />
       </div>
     </div>
