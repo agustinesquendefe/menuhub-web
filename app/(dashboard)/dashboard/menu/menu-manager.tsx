@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -16,12 +17,13 @@ import {
   deleteCategory,
   deleteProduct,
 } from '@/lib/db/menu-actions';
-import { Category, Product, Size, Extra, Addition } from '@/lib/db/schema';
+import { Category, Product, Size, Extra, Addition, TeamPolicy } from '@/lib/db/schema';
 import type { ActionState } from '@/lib/auth/middleware';
 import EditProductForm from '@/components/ui/menu/EditProductForm';
 import AddProductForm from '@/components/ui/menu/AddProductForm';
 import EditCategoryForm from '@/components/ui/menu/EditCategoryForm';
 import CatalogManager from '@/components/ui/menu/CatalogManager';
+import PoliciesForm from '../policies/policies-form';
 
 interface ProductWithAssociations extends Product {
   sizes: Size[];
@@ -43,27 +45,37 @@ interface MenuManagerProps {
   teamId: number;
   initialCategories: CategoryWithProducts[];
   teamCatalog: TeamCatalog;
+  initialPolicies: TeamPolicy | null;
 }
 
-type Tab = 'menu' | 'catalog';
+type Tab = 'menu' | 'catalog' | 'policies';
 
-export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuManagerProps) {
+export function MenuManager({ teamId, initialCategories, teamCatalog, initialPolicies }: MenuManagerProps) {
   const [tab, setTab] = useState<Tab>('menu');
   const [categories, setCategories] = useState(initialCategories);
   const [editingCategory, setEditingCategory] = useState<number | null>(null);
   const [editingProduct, setEditingProduct] = useState<number | null>(null);
   const [expandedCategory, setExpandedCategory] = useState<number | null>(null);
+  const [addingProductForCategory, setAddingProductForCategory] = useState<number | null>(null);
 
   // Sincronizar con datos frescos del servidor tras router.refresh()
   useEffect(() => {
     setCategories(initialCategories);
   }, [initialCategories]);
 
+  const router = useRouter();
+
   // Category form state
   const [categoryState, categoryAction, categoryPending] = useActionState<ActionState, FormData>(
     createCategory,
     { error: '' }
   );
+
+  useEffect(() => {
+    if (categoryState?.success) {
+      router.refresh();
+    }
+  }, [categoryState?.success]);
 
   // Product form state
   const [productState, productAction, productPending] = useActionState<ActionState, FormData>(
@@ -116,6 +128,13 @@ export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuMana
         >
           Catálogo
         </button>
+        <button
+          type="button"
+          onClick={() => setTab('policies')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors cursor-pointer ${tab === 'policies' ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-800'}`}
+        >
+          Políticas
+        </button>
       </div>
 
       {tab === 'catalog' && (
@@ -124,6 +143,10 @@ export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuMana
           initialExtras={teamCatalog.extras}
           initialAdditions={teamCatalog.additions}
         />
+      )}
+
+      {tab === 'policies' && (
+        <PoliciesForm initialPolicies={initialPolicies} />
       )}
 
       {tab === 'menu' && (
@@ -169,7 +192,7 @@ export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuMana
           <Button
             type="submit"
             disabled={categoryPending}
-            className="w-full"
+            className="w-full cursor-pointer"
           >
             <Plus className="w-4 h-4 mr-2" />
             {categoryPending ? 'Creando...' : 'Crear Categoría'}
@@ -231,7 +254,27 @@ export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuMana
                   <div className="mt-4 pt-4 border-t">
                     <div className="space-y-3">
                       {category.products.length === 0 ? (
-                        <p className="text-sm text-gray-500">There are not products</p>
+                        <div className="py-2">
+                          {addingProductForCategory === category.id ? (
+                            <AddProductForm
+                              categoryId={category.id}
+                              categoryName={category.name}
+                              teamId={teamId}
+                              onClose={() => setAddingProductForCategory(null)}
+                            />
+                          ) : (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="cursor-pointer"
+                                onClick={() => setAddingProductForCategory(category.id)}
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Agregar producto
+                              </Button>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         category.products.map(product => (
                           <div key={product.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-start">
@@ -279,11 +322,28 @@ export function MenuManager({ teamId, initialCategories, teamCatalog }: MenuMana
                     </div>
 
                     {/* Add Product Form */}
-                    {/* {addNewProduct && (
-                      <div className="mt-4 pt-4 border-t">
-                        <AddProductForm categoryId={category.id} categoryName={category.name} teamId={teamId} />
+                    {category.products.length > 0 && (
+                      <div className="mt-3 pt-3 border-t">
+                        {addingProductForCategory === category.id ? (
+                          <AddProductForm
+                            categoryId={category.id}
+                            categoryName={category.name}
+                            teamId={teamId}
+                            onClose={() => setAddingProductForCategory(null)}
+                          />
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="cursor-pointer"
+                            onClick={() => setAddingProductForCategory(category.id)}
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Agregar producto
+                          </Button>
+                        )}
                       </div>
-                    )} */}
+                    )}
 
                   </div>
                 )}

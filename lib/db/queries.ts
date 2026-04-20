@@ -189,6 +189,24 @@ export async function getCategoriesWithProducts(teamId: number) {
   return categoriesWithProducts;
 }
 
+export async function getTeamById(teamId: number) {
+  const result = await db
+    .select()
+    .from(teams)
+    .where(eq(teams.id, teamId))
+    .limit(1);
+  return result[0] ?? null;
+}
+
+export async function getTeamByUsername(username: string) {
+  const result = await db
+    .select()
+    .from(teams)
+    .where(eq(teams.username, username))
+    .limit(1);
+  return result[0] ?? null;
+}
+
 export async function getTeamCatalog(teamId: number) {
   const [teamSizes, teamExtras, teamAdditions] = await Promise.all([
     db.select().from(sizes).where(eq(sizes.teamId, teamId)).orderBy(sizes.position),

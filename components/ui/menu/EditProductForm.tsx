@@ -146,8 +146,8 @@ export default function EditProductForm({
     submitData.set('description', description);
     submitData.set('image', imageUrl);
     submitData.set('showPicture', showPicture ? 'true' : 'false');
-    submitData.set('isActive', isActive ? 'true' : 'false');
-    submitData.set('sizeIds', selectedSizeIds.join(','));
+    submitData.set('isActive', isActive ? 'true' : 'false');    const allergenWarning = (form.elements.namedItem('allergenWarning') as HTMLInputElement)?.checked || false;
+    submitData.set('allergenWarning', allergenWarning ? 'true' : 'false');    submitData.set('sizeIds', selectedSizeIds.join(','));
     submitData.set('extraIds', selectedExtraIds.join(','));
     submitData.set('additionIds', selectedAdditionIds.join(','));
 
@@ -210,6 +210,10 @@ export default function EditProductForm({
       <div className="flex items-center gap-2">
         <input id={`edit-prod-showPicture-${product.id}`} name="showPicture" type="checkbox" className="accent-black cursor-pointer" defaultChecked={product.showPicture} />
         <Label htmlFor={`edit-prod-showPicture-${product.id}`}>Mostrar imagen en el menú</Label>
+      </div>
+      <div className="flex items-center gap-2">
+        <input id={`edit-prod-allergen-${product.id}`} name="allergenWarning" type="checkbox" className="accent-orange-500 cursor-pointer" defaultChecked={product.allergenWarning} />
+        <Label htmlFor={`edit-prod-allergen-${product.id}`} className="text-orange-700">Aplica aviso de alérgenos</Label>
       </div>
 
       {/* Sizes / Extras / Additions */}

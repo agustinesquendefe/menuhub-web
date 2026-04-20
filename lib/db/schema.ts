@@ -22,8 +22,10 @@ export const users = pgTable('users', {
 });
 
 export const teams = pgTable('teams', {
+    bannerUrl: text('banner_url'),
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
+  username: varchar('username', { length: 50 }).unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   stripeCustomerId: text('stripe_customer_id').unique(),
@@ -32,6 +34,16 @@ export const teams = pgTable('teams', {
   planName: varchar('plan_name', { length: 50 }),
   subscriptionStatus: varchar('subscription_status', { length: 20 }),
   stripeConnectAccountId: text('stripe_connect_account_id').unique(),
+  // Contact info shown in customer emails and public menu
+  contactEmail: varchar('contact_email', { length: 255 }),
+  contactPhone: varchar('contact_phone', { length: 50 }),
+  address: text('address'),
+  logoUrl: text('logo_url'),
+  description: text('description'),
+  facebookUrl: varchar('facebook_url', { length: 255 }),
+  instagramUrl: varchar('instagram_url', { length: 255 }),
+  whatsappPhone: varchar('whatsapp_phone', { length: 50 }),
+  callPhone: varchar('call_phone', { length: 50 }),
 });
 
 export const teamMembers = pgTable('team_members', {
@@ -98,18 +110,20 @@ export const products = pgTable('products', {
   price: decimal('price', { precision: 10, scale: 2 }),
   currency: varchar('currency', { length: 10 }).notNull().default('MXN'),
   showPicture: boolean('show_picture').notNull().default(true),
+  allergenWarning: boolean('allergen_warning').notNull().default(false),
   position: integer('position').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
-export const teamsRelations = relations(teams, ({ many }) => ({
+export const teamsRelations = relations(teams, ({ many, one }) => ({
   teamMembers: many(teamMembers),
   activityLogs: many(activityLogs),
   invitations: many(invitations),
   categories: many(categories),
   products: many(products),
+  teamPolicy: one(teamPolicies),
 }));
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -254,6 +268,27 @@ export type Price = typeof prices.$inferSelect;
 export type NewPrice = typeof prices.$inferInsert;
 export type ProductTax = typeof productTaxes.$inferSelect;
 export type NewProductTax = typeof productTaxes.$inferInsert;
+
+// ─── Team Policies ────────────────────────────────────────────────────────────
+export const teamPolicies = pgTable('team_policies', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().unique().references(() => teams.id),
+  warnRawIngredients: boolean('warn_raw_ingredients').notNull().default(false),
+  warnAllergens: boolean('warn_allergens').notNull().default(false),
+  warnAlcohol: boolean('warn_alcohol').notNull().default(false),
+  warnGluten: boolean('warn_gluten').notNull().default(false),
+  warnNuts: boolean('warn_nuts').notNull().default(false),
+  warnDairy: boolean('warn_dairy').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const teamPoliciesRelations = relations(teamPolicies, ({ one }) => ({
+  team: one(teams, { fields: [teamPolicies.teamId], references: [teams.id] }),
+}));
+
+export type TeamPolicy = typeof teamPolicies.$inferSelect;
+export type NewTeamPolicy = typeof teamPolicies.$inferInsert;
 
 // ─── Sizes ────────────────────────────────────────────────────────────────────
 export const sizes = pgTable('sizes', {

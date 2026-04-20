@@ -4,13 +4,22 @@ import { Button } from "../button";
 import { Input } from "../input";
 import { Label } from "../label";
 import { X } from "lucide-react";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { updateCategory } from "@/lib/db/menu-actions";
 import { ActionState } from "@/lib/auth/middleware";
 import { Category } from "@/lib/db/schema";
 
 export default function EditCategoryForm({ category, onClose }: { category: Category; onClose: () => void }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(updateCategory, { error: '' });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+      onClose();
+    }
+  }, [state?.success]);
 
   return (
     <form action={action} className="space-y-3">

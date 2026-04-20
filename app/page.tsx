@@ -3,6 +3,7 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-neutral-50">
+      
       {/* Hero */}
       <section className="px-6 md:px-10 lg:px-16 py-20 md:py-28">
         <div className="mx-auto max-w-6xl grid md:grid-cols-2 gap-8 items-center">
@@ -216,6 +217,7 @@ export default function Home() {
           </div>
         </div>
       </footer>
+      
     </main>
   );
 }

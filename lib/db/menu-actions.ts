@@ -8,7 +8,7 @@ import { getUserWithTeam } from '@/lib/db/queries';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
-const createCategorySchema = z.object({
+const createCategorySchema = z.object({ 
   name: z.string().min(1, 'Category name is required').max(100),
   description: z.string().optional(),
 });
@@ -63,13 +63,14 @@ const createProductSchema = z.object({
   currency: z.string().default('MXN'),
   image: z.string().optional(),
   showPicture: z.coerce.boolean().optional(),
-  taxIds: z.array(z.number()).optional(), // IDs de impuestos a asociar
+  allergenWarning: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  taxIds: z.array(z.number()).optional(),
 });
 
 export const createProduct = validatedActionWithUser(
   createProductSchema,
   async (data, _, user) => {
-    const { categoryId, name, description, price, currency, image, showPicture, taxIds } = data;
+    const { categoryId, name, description, price, currency, image, showPicture, allergenWarning, taxIds } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
     if (!userWithTeam?.teamId) {
@@ -113,6 +114,7 @@ export const createProduct = validatedActionWithUser(
       price: price.toString(),
       currency,
       showPicture: showPicture !== undefined ? showPicture : true,
+      allergenWarning: allergenWarning ?? false,
       position: nextPosition,
       isActive: true,
     };
@@ -182,6 +184,7 @@ export const updateCategory = validatedActionWithUser(
       })
       .where(eq(categories.id, categoryId));
 
+    revalidatePath('/dashboard/menu');
     return { success: 'Category updated successfully' };
   }
 );
@@ -198,6 +201,7 @@ const updateProductSchema = z.object({
   image: z.string().optional(),
   showPicture: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   isActive: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+  allergenWarning: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   sizeIds: idListTransform,
   extraIds: idListTransform,
   additionIds: idListTransform,
@@ -206,7 +210,7 @@ const updateProductSchema = z.object({
 export const updateProduct = validatedActionWithUser(
   updateProductSchema,
   async (data, _, user) => {
-    const { productId, name, description, price, image, showPicture, isActive, sizeIds, extraIds, additionIds } = data;
+    const { productId, name, description, price, image, showPicture, isActive, allergenWarning, sizeIds, extraIds, additionIds } = data;
     const userWithTeam = await getUserWithTeam(user.id);
 
     if (!userWithTeam?.teamId) {
@@ -236,6 +240,7 @@ export const updateProduct = validatedActionWithUser(
         image: image || null,
         price: price.toString(),
         showPicture: showPicture !== undefined ? showPicture : true,
+        allergenWarning: allergenWarning ?? false,
         isActive: isActive !== undefined ? isActive : true,
         updatedAt: new Date(),
       })

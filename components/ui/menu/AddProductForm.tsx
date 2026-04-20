@@ -3,14 +3,14 @@
 import { Button } from "../button";
 import { Input } from "../input";
 import { Label } from "../label";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useActionState, useState, useTransition, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct } from "@/lib/db/menu-actions";
 import { ActionState } from "@/lib/auth/middleware";
 import { supabase } from "@/lib/supabase/client";
 
-export default function AddProductForm({ categoryId, categoryName, teamId }: { categoryId: number; categoryName: string; teamId: number }) {
+export default function AddProductForm({ categoryId, categoryName, teamId, onClose }: { categoryId: number; categoryName: string; teamId: number; onClose?: () => void }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(createProduct, { error: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,7 @@ export default function AddProductForm({ categoryId, categoryName, teamId }: { c
     if (state?.success) {
       router.refresh();
       formRef.current?.reset();
+      onClose?.();
     }
   }, [state?.success]);
 
@@ -58,6 +59,8 @@ export default function AddProductForm({ categoryId, categoryName, teamId }: { c
     submitData.set('description', description);
     submitData.set('image', imageUrl);
     submitData.set('showPicture', showPicture ? 'true' : 'false');
+    const allergenWarning = (form.elements.namedItem('allergenWarning') as HTMLInputElement)?.checked || false;
+    submitData.set('allergenWarning', allergenWarning ? 'true' : 'false');
 
     // Llamar a la acción del backend
     startTransition(() => {
@@ -120,11 +123,23 @@ export default function AddProductForm({ categoryId, categoryName, teamId }: { c
         <input id={`prod-showPicture-${categoryId}`} name="showPicture" type="checkbox" className="accent-black cursor-pointer" />
         <Label htmlFor={`prod-showPicture-${categoryId}`}>Mostrar imagen en el menú</Label>
       </div>
+      <div className="flex items-center gap-2">
+        <input id={`prod-allergen-${categoryId}`} name="allergenWarning" type="checkbox" className="accent-orange-500 cursor-pointer" />
+        <Label htmlFor={`prod-allergen-${categoryId}`} className="text-orange-700">Aplica aviso de alérgenos</Label>
+      </div>
       {(state?.error || error) && <p className="text-red-500 text-sm">{state?.error || error}</p>}
-      <Button type="submit" size="sm" disabled={pending || submitting} className="w-full">
-        <Plus className="w-4 h-4 mr-2" />
-        {(pending || submitting) ? 'Agregando...' : 'Agregar Producto'}
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button type="submit" size="sm" disabled={pending || submitting} className="w-full cursor-pointer">
+          <Plus className="w-4 h-4 mr-2" />
+          {(pending || submitting) ? 'Agregando...' : 'Agregar Producto'}
+        </Button>
+        {onClose && (
+          <Button type="button" variant="outline" size="sm" onClick={onClose} className="w-full cursor-pointer hover:bg-black hover:text-white">
+            <X className="w-4 h-4 mr-2" />
+            Cancelar
+          </Button>
+        )}
+      </div>
     </form>
   );
 }
