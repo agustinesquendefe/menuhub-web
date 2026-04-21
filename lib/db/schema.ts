@@ -22,7 +22,7 @@ export const users = pgTable('users', {
 });
 
 export const teams = pgTable('teams', {
-    bannerUrl: text('banner_url'),
+  bannerUrl: text('banner_url'),
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
   username: varchar('username', { length: 50 }).unique(),
@@ -38,7 +38,7 @@ export const teams = pgTable('teams', {
   contactEmail: varchar('contact_email', { length: 255 }),
   contactPhone: varchar('contact_phone', { length: 50 }),
   address: text('address'),
-  logoUrl: text('logo_url'),
+  profilePictureUrl: text('profile_picture_url'),
   description: text('description'),
   facebookUrl: varchar('facebook_url', { length: 255 }),
   instagramUrl: varchar('instagram_url', { length: 255 }),

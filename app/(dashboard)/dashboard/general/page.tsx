@@ -21,23 +21,19 @@ type ActionState = {
   success?: string;
 };
 
-type AccountFormProps = {
-  state: ActionState;
-  nameValue?: string;
-  emailValue?: string;
-};
-
 function AccountForm({
   state,
   nameValue = '',
-  emailValue = ''
-}: AccountFormProps) {
+  emailValue = '',
+}: {
+  state: ActionState;
+  nameValue?: string;
+  emailValue?: string;
+}) {
   return (
     <>
       <div>
-        <Label htmlFor="name" className="mb-2">
-          Name
-        </Label>
+        <Label htmlFor="name" className="mb-2">Name</Label>
         <Input
           id="name"
           name="name"
@@ -47,9 +43,7 @@ function AccountForm({
         />
       </div>
       <div>
-        <Label htmlFor="email" className="mb-2">
-          Email
-        </Label>
+        <Label htmlFor="email" className="mb-2">Email</Label>
         <Input
           id="email"
           name="email"
@@ -74,13 +68,11 @@ function AccountFormWithData({ state }: { state: ActionState }) {
   );
 }
 
-type TeamData = { username: string | null; contactEmail: string | null; contactPhone: string | null; address: string | null; logoUrl: string | null };
-
 function TeamUsernameForm({ state }: { state: ActionState }) {
-
-  const { data: team } = useSWR<TeamData>('/api/team', fetcher);
+  const { data: team } = useSWR<any>('/api/team', fetcher);
   const currentUsername = team?.username ?? '';
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   useEffect(() => {
     if (currentUsername && typeof window !== 'undefined') {
       setPreviewUrl(`${window.location.origin}/${currentUsername}`);
@@ -91,9 +83,7 @@ function TeamUsernameForm({ state }: { state: ActionState }) {
 
   return (
     <div>
-      <Label htmlFor="username" className="mb-2">
-        Nombre de usuario del equipo
-      </Label>
+      <Label htmlFor="username" className="mb-2">Nombre de usuario del equipo</Label>
       <Input
         id="username"
         name="username"
@@ -103,12 +93,7 @@ function TeamUsernameForm({ state }: { state: ActionState }) {
       {previewUrl && (
         <p className="mt-1 text-xs text-gray-500">
           Tu menú público:{' '}
-          <a
-            href={previewUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-orange-500 hover:underline"
-          >
+          <a href={previewUrl} target="_blank" rel="noreferrer" className="text-orange-500 hover:underline">
             {previewUrl}
           </a>
         </p>
@@ -120,30 +105,84 @@ function TeamUsernameForm({ state }: { state: ActionState }) {
   );
 }
 
-function TeamContactForm({ state, action, pending }: { state: ActionState; action: (formData: FormData) => void; pending: boolean }) {
+function TeamContactForm({
+  state,
+  action,
+  pending,
+}: {
+  state: ActionState;
+  action: (formData: FormData) => void;
+  pending: boolean;
+}) {
   const { data: team } = useSWR<any>('/api/team', fetcher);
-  const [logoPreview, setLogoPreview] = useState<string | null>(team?.logoUrl ?? null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(team?.bannerUrl ?? null);
+  const teamId = team?.id;
+
+  const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (team?.profilePictureUrl) {
+      setProfilePicturePreview(team.profilePictureUrl);
+      setProfilePictureUrl(team.profilePictureUrl);
+    }
+    if (team?.bannerUrl) {
+      setBannerPreview(team.bannerUrl);
+      setBannerUrl(team.bannerUrl);
+    }
+  }, [team?.profilePictureUrl, team?.bannerUrl]);
+
+  async function handleProfilePictureChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !teamId) return;
+    setProfilePicturePreview(URL.createObjectURL(file));
+    setUploading(true);
+    const url = await uploadTeamAsset({ file, teamId, type: 'profile_picture' });
+    setProfilePictureUrl(url);
+    setUploading(false);
+  }
+
+  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !teamId) return;
+    setBannerPreview(URL.createObjectURL(file));
+    setUploading(true);
+    const url = await uploadTeamAsset({ file, teamId, type: 'banner' });
+    setBannerUrl(url);
+    setUploading(false);
+  }
+
+
+  // Wrapper para inyectar las URLs antes de enviar el form
+  const customAction = async (formData: FormData) => {
+    if (profilePictureUrl) formData.set('profilePictureUrl', profilePictureUrl);
+    if (bannerUrl) formData.set('bannerUrl', bannerUrl);
+    await action(formData);
+  };
 
   return (
-    <form className="space-y-4" action={action}>
+    <form className="space-y-4" action={customAction}>
       <div>
-        <Label htmlFor="logoFile" className="mb-2">Logo</Label>
+        <Label htmlFor="profilePictureFile" className="mb-2">Foto de perfil</Label>
         <Input
-          id="logoFile"
-          name="logoFile"
+          id="profilePictureFile"
+          name="profilePictureFile"
           type="file"
           accept="image/*"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) setLogoPreview(URL.createObjectURL(file));
-          }}
+          onChange={handleProfilePictureChange}
         />
-        {logoPreview && (
-          <img src={logoPreview} alt="Logo preview" className="mt-2 max-h-24 rounded bg-gray-50 border p-2" />
+        {profilePicturePreview && (
+          <img
+            src={profilePicturePreview}
+            alt="Foto de perfil"
+            className="mt-2 max-h-24 rounded bg-gray-50 border p-2"
+          />
         )}
         <p className="mt-1 text-xs text-gray-400">Aparece en el menú público y correos enviados a tus clientes.</p>
       </div>
+
       <div>
         <Label htmlFor="bannerFile" className="mb-2">Banner / Portada</Label>
         <Input
@@ -151,16 +190,24 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
           name="bannerFile"
           type="file"
           accept="image/*"
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (file) setBannerPreview(URL.createObjectURL(file));
-          }}
+          onChange={handleBannerChange}
         />
         {bannerPreview && (
-          <img src={bannerPreview} alt="Banner preview" className="mt-2 max-h-32 rounded bg-gray-50 border p-2 w-full object-cover" />
+          <img
+            src={bannerPreview}
+            alt="Banner"
+            className="mt-2 max-h-32 rounded bg-gray-50 border p-2 w-full object-cover"
+          />
         )}
         <p className="mt-1 text-xs text-gray-400">Imagen de portada en el menú público.</p>
       </div>
+
+      {uploading && (
+        <p className="text-xs text-gray-400 flex items-center gap-1">
+          <Loader2 className="h-3 w-3 animate-spin" /> Subiendo imagen...
+        </p>
+      )}
+
       <div>
         <Label htmlFor="description" className="mb-2">Descripción</Label>
         <Input
@@ -170,6 +217,7 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
           defaultValue={team?.description ?? ''}
         />
       </div>
+
       <div>
         <Label htmlFor="facebookUrl" className="mb-2">Facebook</Label>
         <Input
@@ -210,6 +258,7 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
           defaultValue={team?.callPhone ?? ''}
         />
       </div>
+
       <div>
         <Label htmlFor="contactEmail" className="mb-2">Email de contacto</Label>
         <Input
@@ -240,12 +289,14 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
           defaultValue={team?.address ?? ''}
         />
       </div>
+
       {state.error && <p className="text-red-500 text-sm">{state.error}</p>}
       {state.success && <p className="text-green-500 text-sm">{state.success}</p>}
+
       <Button
         type="submit"
         className="bg-orange-500 hover:bg-orange-600 text-white"
-        disabled={pending}
+        disabled={pending || uploading}
       >
         {pending ? (
           <>
@@ -258,7 +309,6 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
       </Button>
     </form>
   );
-
 }
 
 export default function GeneralPage() {
@@ -291,12 +341,8 @@ export default function GeneralPage() {
               <Suspense fallback={<AccountForm state={accountState} />}>
                 <AccountFormWithData state={accountState} />
               </Suspense>
-              {accountState.error && (
-                <p className="text-red-500 text-sm">{accountState.error}</p>
-              )}
-              {accountState.success && (
-                <p className="text-green-500 text-sm">{accountState.success}</p>
-              )}
+              {accountState.error && <p className="text-red-500 text-sm">{accountState.error}</p>}
+              {accountState.success && <p className="text-green-500 text-sm">{accountState.success}</p>}
               <Button
                 type="submit"
                 className="bg-orange-500 hover:bg-orange-600 text-white"
@@ -329,12 +375,8 @@ export default function GeneralPage() {
               }>
                 <TeamUsernameForm state={usernameState} />
               </Suspense>
-              {usernameState.error && (
-                <p className="text-red-500 text-sm">{usernameState.error}</p>
-              )}
-              {usernameState.success && (
-                <p className="text-green-500 text-sm">{usernameState.success}</p>
-              )}
+              {usernameState.error && <p className="text-red-500 text-sm">{usernameState.error}</p>}
+              {usernameState.success && <p className="text-green-500 text-sm">{usernameState.success}</p>}
               <Button
                 type="submit"
                 className="bg-orange-500 hover:bg-orange-600 text-white"

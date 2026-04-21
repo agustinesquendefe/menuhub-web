@@ -7,11 +7,11 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function uploadTeamAsset({
   file,
   teamId,
-  type, // 'logo' | 'banner'
+  type, // 'profile_picture' | 'banner'
 }: {
   file: File;
   teamId: number | string;
-  type: 'logo' | 'banner';
+  type: 'profile_picture' | 'banner';
 }): Promise<string | null> {
   if (!file) return null;
   const ext = file.name.split('.').pop() || 'png';
