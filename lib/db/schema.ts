@@ -22,6 +22,10 @@ export const users = pgTable('users', {
 });
 
 export const teams = pgTable('teams', {
+  openingHours: text('opening_hours'),
+  openHour: varchar('open_hour', { length: 10 }), // Ej: '08:00', '8:00 AM'
+  closeHour: varchar('close_hour', { length: 10 }), // Ej: '22:00', '10:00 PM'
+  hourFormat: varchar('hour_format', { length: 10 }), // '24h' o '12h'
   bannerUrl: text('banner_url'),
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),
@@ -37,11 +41,18 @@ export const teams = pgTable('teams', {
   // Contact info shown in customer emails and public menu
   contactEmail: varchar('contact_email', { length: 255 }),
   contactPhone: varchar('contact_phone', { length: 50 }),
-  address: text('address'),
+  line1: text('line1'),
+  line2: text('line2'),
+  city: varchar('city', { length: 100 }),
+  state: varchar('state', { length: 100 }),
+  zipcode: varchar('zipcode', { length: 20 }),
+  country: varchar('country', { length: 100 }),
   profilePictureUrl: text('profile_picture_url'),
   description: text('description'),
   facebookUrl: varchar('facebook_url', { length: 255 }),
   instagramUrl: varchar('instagram_url', { length: 255 }),
+  tiktokUrl: varchar('tiktok_url', { length: 255 }),
+  youtubeUrl: varchar('youtube_url', { length: 255 }),
   whatsappPhone: varchar('whatsapp_phone', { length: 50 }),
   callPhone: varchar('call_phone', { length: 50 }),
 });

@@ -47,14 +47,22 @@ export const updateTeamUsername = validatedActionWithUser(
 const updateTeamContactSchema = z.object({
   contactEmail: z.string().email('Email inválido').or(z.literal('')).optional(),
   contactPhone: z.string().max(50).optional(),
-  address: z.string().max(300).optional(),
+  line1: z.string().max(300).optional(),
+  line2: z.string().max(300).optional(),
+  city: z.string().max(100).optional(),
+  state: z.string().max(100).optional(),
+  zipcode: z.string().max(20).optional(),
+  country: z.string().max(100).optional(),
   profilePictureUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   bannerUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   description: z.string().max(500).optional(),
   facebookUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   instagramUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  tiktokUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  youtubeUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
   whatsappPhone: z.string().max(50).optional(),
   callPhone: z.string().max(50).optional(),
+  openingHours: z.string().optional(),
 });
 
 export const updateTeamContact = validatedActionWithUser(
@@ -70,14 +78,22 @@ export const updateTeamContact = validatedActionWithUser(
       .set({
         contactEmail: data.contactEmail || null,
         contactPhone: data.contactPhone || null,
-        address: data.address || null,
+        line1: data.line1 || null,
+        line2: data.line2 || null,
+        city: data.city || null,
+        state: data.state || null,
+        zipcode: data.zipcode || null,
+        country: data.country || null,
         profilePictureUrl: data.profilePictureUrl || null,
         bannerUrl: data.bannerUrl || null,
         description: data.description || null,
         facebookUrl: data.facebookUrl || null,
         instagramUrl: data.instagramUrl || null,
+        tiktokUrl: data.tiktokUrl || null,
+        youtubeUrl: data.youtubeUrl || null,
         whatsappPhone: data.whatsappPhone || null,
         callPhone: data.callPhone || null,
+        openingHours: data.openingHours || null,
         updatedAt: new Date(),
       })
       .where(eq(teams.id, userWithTeam.teamId));

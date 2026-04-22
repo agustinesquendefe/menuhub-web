@@ -1,8 +1,41 @@
-'use client';
+"use client";
+
+import { OpeningHoursPopover } from '@/components/ui/OpeningHoursPopover';
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertTriangle, ShoppingCart, Plus, CheckCircle2 } from 'lucide-react';
+import { FaClock, FaEnvelope, FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+
+function getFullAddress(team: Team) {
+  return [
+    team.line1,
+    team.line2,
+    team.city,
+    team.state,
+    team.zipcode,
+    team.country
+  ].filter(Boolean).join(', ');
+}
+
+function MapIframe({ address }: { address: string }) {
+  if (!address) return null;
+  const src = `https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`;
+  return (
+    <div className="w-full h-20 mt-2 rounded-xl overflow-hidden border border-gray-200">
+      <iframe
+        title="Ubicación en mapa"
+        src={src}
+        width="100%"
+        height="100%"
+        style={{ border: 0 }}
+        allowFullScreen
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+      />
+    </div>
+  );
+}
 import { Team, TeamPolicy, Category } from '@/lib/db/schema';
 import { CartProvider, ProductWithAssociations, useCart } from './cart-context';
 import { AddToCartModal } from './add-to-cart-modal';
@@ -214,11 +247,10 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
-      
-      {/* Header con banner de fondo y logo centrado */}
+    <div className="w-full">
+      {/* Header con banner de fondo y logo a la izquierda */}
       <header className="w-full mx-auto bg-white border-b shadow-sm">
-        <div className="relative w-full max-w-6xl mx-auto flex flex-col items-center justify-center px-0 pb-4">
+        <div className="relative w-full max-w-6xl mx-auto px-0 pb-4">
           
           {/* Banner de fondo */}
           {team.bannerUrl && (
@@ -233,107 +265,121 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
             </div>
           )}
-          
-          {/* Espaciador para el logo flotante */}
-          <div className="" />
 
-            {/* Datos del restaurante */}
-            <div className="w-full mt-3">
-              
-              <div className="relative flex flex-row text-left">
+          {/* Grid para logo y datos */}
+          <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-5 gap-4 px-2 items-start">
+            
+            {/* Columna 1: Logo */}
+            <div className="flex justify-center md:justify-start md:col-span-1">
+              {team.profilePictureUrl && (
+                <div className="rounded-2xl border border-gray-300 p-2" style={{ width: 180, height: 180 }}>
+                  <img
+                    src={team.profilePictureUrl}
+                    alt={team.name + ' logo'}
+                    className="w-42 h-42 object-contain rounded-xl"
+                  />
+                </div>
+              )}
+            </div>
 
-                {/* Logo sobre el banner */}
-                {team.profilePictureUrl && (
-                  <div className="flex flex-col items-center">
-                    <div className="bg-white me-5 rounded-2xl shadow-lg p-2" style={{ width: 140, height: 140 }}>
-                      <img
-                        src={team.profilePictureUrl}
-                        alt={team.name}
-                        className="w-32 h-32 object-contain rounded-xl"
-                      />
-                    </div>
-                  </div>
-                )}
+            {/* Columna 2-5: Datos del restaurante y contacto */}
+            <div className="md:col-span-4 flex flex-col gap-4">
+              <div className="flex flex-row items-start justify-between py-3 sm:px-0 px-4 rounded-xl">
+                <div className="flex flex-col">
+                  <h1 className="text-2xl font-extrabold text-gray-900 text-left w-full">
+                    {team.name}
+                  </h1>
+                  {team.description && (
+                    <p className="mt-2 text-sm text-gray-700 text-left max-w-xl">{team.description}</p>
+                  )}
+                </div>
+                <div className="mb-auto">
+                  <CartIconButton onClick={() => setCartOpen(true)} />
+                </div>
+              </div>
 
-                <div className="w-full flex flex-row items-center justify-between mb-auto pt-3">
-                  <div className="flex flex-col">
-                    <h1 className="text-2xl font-extrabold text-gray-900 text-left w-full">
-                      {team.name}
-                    </h1>
-                    {team.description && (
-                      <p className="mt-2 text-sm text-gray-700 text-left max-w-xl">{team.description}</p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full mt-2">
+                {/* Open Hours */}
+                <div className="col-span-4 sm:col-span-2 p-3">
+                  
+                  <div className="">
+                    {team.openingHours ? (
+                      <OpeningHoursPopover openingHours={typeof team.openingHours === 'string' ? JSON.parse(team.openingHours) : team.openingHours} />
+                    ) : (
+                      'Horarios no configurados'
                     )}
-                    <div className="w-full flex flex-row items-start">
-                      {/* Open Hours */}
-                      <div className="">
-                        <h3 className='mt-2 text-sm'>
-                          Horarios de atencion: Hoy 11:00 AM - 10:00 PM Abierto
-                        </h3>
-                        
-                        {/* Links de contacto/redes */}
-                        <div className="flex flex-wrap gap-4 mt-3">
-                          
-                          {team.whatsappPhone && (
-                            <a href={`https://wa.me/${team.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-sm gap-1">
-                              <span role="img" aria-label="WhatsApp">💬</span> WhatsApp
-                            </a>
-                          )}
-                          {team.contactEmail && (
-                            <a href={`mailto:${team.contactEmail}`} className="text-gray-700 hover:underline text-sm gap-1">
-                              <span role="img" aria-label="Email">✉️</span> Email
-                            </a>
-                          )}
-                          {team.callPhone && (
-                            <a href={`tel:${team.callPhone}`} className="text-gray-700 hover:underline text-sm gap-1">
-                              <span role="img" aria-label="Llamar">📞</span> Llamar
-                            </a>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Our Social Media */}
-                      <div className="">
-                        <h3 className='mt-2 text-sm'>
-                          Follow us:
-                        </h3>
-                        {team.facebookUrl && (
-                          <a href={team.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
-                            <span role="img" aria-label="Facebook">📘</span> Facebook
-                          </a>
-                        )}
-                        {team.instagramUrl && (
-                          <a href={team.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline flex items-center gap-1">
-                            <span role="img" aria-label="Instagram">📸</span> Instagram
-                          </a>
-                        )}
-                      </div>
-
-                      {/* Our Location */}
-                      {team.address && (
-                        <div className="mt-3">
-                          <h3 className='mt-2'>
-                            Location:
-                          </h3>
-                          <p className="text-sm text-gray-500">{team.address}</p>
-                        </div>
-                      )}
-
-
-                    </div>
                   </div>
-                  <div className="mb-auto">
-                    <CartIconButton onClick={() => setCartOpen(true)} />
+
+                  {/* Links de contacto/redes */}
+                  <div className="flex flex-wrap gap-5 mt-3">
+                    {team.callPhone && (
+                      <a href={`tel:${team.callPhone}`} className="text-gray-700 hover:underline text-sm gap-1 flex items-center">
+                        <FaPhone size={14} /> Llamar
+                      </a>
+                    )}
+                    {team.whatsappPhone && (
+                      <a href={`https://wa.me/${team.whatsappPhone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline text-sm gap-1 flex items-center">
+                        <FaWhatsapp size={18} /> WhatsApp
+                      </a>
+                    )}
+                    {team.contactEmail && (
+                      <a href={`mailto:${team.contactEmail}`} className="text-gray-700 hover:underline text-sm gap-1 flex items-center">
+                        <FaEnvelope size={15} /> Email
+                      </a>
+                    )}
                   </div>
                 </div>
 
-                
+                {/* Our Social Media */}
+                <div className="col-span-4 sm:col-span-1 rounded-xl p-3">
+                  <h3 className='text-sm font-semibold pb-2'>
+                    Follow us:
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    {team.facebookUrl && (
+                      <a href={team.facebookUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline flex items-center gap-1">
+                        <FaFacebook size={18} /> Facebook
+                      </a>
+                    )}
+                    {team.instagramUrl && (
+                      <a href={team.instagramUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline flex items-center gap-1">
+                        <FaInstagram size={18} /> Instagram
+                      </a>
+                    )}
+                    {team.tiktokUrl && (
+                      <a href={team.tiktokUrl} target="_blank" rel="noopener noreferrer" className="text-black hover:underline flex items-center gap-1">
+                        <FaTiktok size={18} /> TikTok
+                      </a>
+                    )}
+                    {team.youtubeUrl && (
+                      <a href={team.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-red-600 hover:underline flex items-center gap-1">
+                        <FaYoutube size={18} /> YouTube
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Our Location */}
+                {(team.line1 || team.line2 || team.city || team.state || team.country) && (
+                  <div className="col-span-4 sm:col-span-1 rounded-xl p-3">
+                    <h3 className='text-sm font-semibold'>
+                      Our Location:
+                    </h3>
+                    {/* <p className="text-sm text-gray-500">
+                      {getFullAddress(team)}
+                    </p> */}
+                    <MapIframe address={getFullAddress(team)} />
+                  </div>
+                )}
               </div>
+
             </div>
+
           </div>
 
           {/* Category tabs */}
           {categories.length > 1 && (
-            <div className="max-w-6xl mx-auto px-4 overflow-x-auto sticky top-[calc(100px+1.5rem)] z-10 bg-white">
+            <div className="max-w-6xl mx-auto px-4 mt-5 overflow-x-auto sticky top-[calc(100px+1.5rem)] z-10 bg-white">
               <div className="flex pb-0 min-w-max">
                 {categories.map(cat => (
                   <button
@@ -352,6 +398,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               </div>
             </div>
           )}
+        </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6 pb-28">
@@ -404,11 +451,51 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
       {/* Footer público con dirección */}
       <footer className="mt-auto bg-white border-t py-8 px-4">
         <div className="max-w-2xl mx-auto flex flex-col items-center text-center gap-3">
-          {team.address && (
-            <p className="text-sm text-gray-500 flex items-center gap-1 justify-center">
-              <span role="img" aria-label="Dirección">📍</span> {team.address}
+
+          {team.profilePictureUrl && (
+            <div className="">
+              <div className="rounded-2xl border border-gray-300 p-2" style={{ width: 140, height: 140 }}>
+                <img
+                  src={team.profilePictureUrl}
+                  alt={team.name + ' logo'}
+                  className="w-30 h-30 object-contain rounded-xl"
+                />
+              </div>
+            </div>
+          )}
+
+          {team.name && (
+            <h2 className="text-lg font-bold text-gray-900">
+              {team.name}
+            </h2>
+          )}
+
+          {team.description && (
+            <p className="text-sm text-gray-700 mt-1">
+              {team.description}
             </p>
           )}
+
+          {(team.line1 || team.line2 || team.city || team.state || team.country) && (
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getFullAddress(team))}`} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              role="img"
+              aria-label="Dirección"
+              className='text-blue-500 hover:underline text-sm'
+            >
+              📍{getFullAddress(team)
+            }
+            </a>
+          )}
+
+          {/* {(company.name && (
+            <p className="text-xs text-gray-400 mt-4">
+              Powered by <a href="https://menuhub.xyz" target="_blank" rel="noopener noreferrer" className="hover:underline">{company.name}</a>
+            </p>
+          ))} */}
+
         </div>
       </footer>
     </div>
