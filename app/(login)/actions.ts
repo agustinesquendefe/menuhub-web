@@ -72,6 +72,8 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
   }
 
   const { user: foundUser, team: foundTeam } = userWithTeam[0];
+  // DEPURACIÓN: Mostrar usuario encontrado y su rol
+  console.log('Usuario encontrado en login:', foundUser);
 
   const isPasswordValid = await comparePasswords(
     password,
@@ -96,6 +98,11 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     const subscriptionPriceId = formData.get('priceId') as string;
     const setupPriceId = formData.get('setupPriceId') as string | undefined;
     return createCheckoutSession({ team: foundTeam, subscriptionPriceId, setupPriceId });
+  }
+
+  // Si el usuario es superadmin, retornar redirectTo
+  if (foundUser.role === 'superadmin') {
+    return { redirectTo: '/dashboard/superadmin' };
   }
 
   // Verify if user has an active subscription

@@ -1,3 +1,26 @@
+export const company = pgTable('company', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description'),
+  logoUrl: text('logo_url'),
+  bannerUrl: text('banner_url'),
+  contactEmail: varchar('contact_email', { length: 255 }),
+  contactPhone: varchar('contact_phone', { length: 50 }),
+  address: text('address'),
+  city: varchar('city', { length: 100 }),
+  state: varchar('state', { length: 100 }),
+  zipcode: varchar('zipcode', { length: 20 }),
+  country: varchar('country', { length: 100 }),
+  facebookUrl: varchar('facebook_url', { length: 255 }),
+  instagramUrl: varchar('instagram_url', { length: 255 }),
+  tiktokUrl: varchar('tiktok_url', { length: 255 }),
+  youtubeUrl: varchar('youtube_url', { length: 255 }),
+  whatsappPhone: varchar('whatsapp_phone', { length: 50 }),
+  callPhone: varchar('call_phone', { length: 50 }),
+  stripeFeePercent: decimal('stripe_fee_percent', { precision: 5, scale: 2 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
 import {
   pgTable,
   serial,
@@ -22,6 +45,7 @@ export const users = pgTable('users', {
 });
 
 export const teams = pgTable('teams', {
+    companyId: integer('company_id').references(() => company.id),
   openingHours: text('opening_hours'),
   openHour: varchar('open_hour', { length: 10 }), // Ej: '08:00', '8:00 AM'
   closeHour: varchar('close_hour', { length: 10 }), // Ej: '22:00', '10:00 PM'

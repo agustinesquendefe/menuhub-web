@@ -6,6 +6,11 @@ import { NewUser } from '@/lib/db/schema';
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 const SALT_ROUNDS = 10;
 
+type SessionData = {
+  user: { id: number; role: string };
+  expires: string;
+};
+
 export async function hashPassword(password: string) {
   return hash(password, SALT_ROUNDS);
 }
@@ -16,11 +21,6 @@ export async function comparePasswords(
 ) {
   return compare(plainTextPassword, hashedPassword);
 }
-
-type SessionData = {
-  user: { id: number };
-  expires: string;
-};
 
 export async function signToken(payload: SessionData) {
   return await new SignJWT(payload)
@@ -46,7 +46,7 @@ export async function getSession() {
 export async function setSession(user: NewUser) {
   const expiresInOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000);
   const session: SessionData = {
-    user: { id: user.id! },
+    user: { id: user.id!, role: user.role || 'member' },
     expires: expiresInOneDay.toISOString(),
   };
   const encryptedSession = await signToken(session);

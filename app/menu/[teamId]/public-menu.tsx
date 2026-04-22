@@ -475,7 +475,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               {team.description}
             </p>
           )}
-
+ 
           {(team.line1 || team.line2 || team.city || team.state || team.country) && (
             <a 
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(getFullAddress(team))}`} 

@@ -58,7 +58,20 @@ function UserMenu() {
           </AvatarFallback>
         </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="flex flex-col gap-1">
+      <DropdownMenuContent align="end" className="flex flex-col gap-1 min-w-[220px]">
+        <div className="px-3 py-2 border-b">
+          <div className="font-semibold text-sm">{user.name || user.email}</div>
+          <div className="text-xs text-gray-500">{user.email}</div>
+          <div className="text-xs text-orange-600 font-bold uppercase">{user.role}</div>
+        </div>
+        {user.role === 'superadmin' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/dashboard/superadmin" className="flex w-full items-center">
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              <span>Panel Superadmin</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <Link href="/dashboard" className="flex w-full items-center">
             <Home className="mr-2 h-4 w-4" />
