@@ -145,7 +145,7 @@ export default function CompanyForm() {
         <label className="block text-sm font-medium mb-1">Teléfono de llamadas</label>
         <Input name="callPhone" value={company?.callPhone || ""} onChange={handleChange} />
       </div>
-      <Button type="submit" disabled={saving}>{saving ? "Guardando..." : "Guardar cambios"}</Button>
+      <Button type="submit" disabled={saving} className="cursor-pointer">{saving ? "Guardando..." : "Guardar cambios"}</Button>
       {success && <div className="text-green-600 text-sm">¡Cambios guardados!</div>}
     </form>
   );

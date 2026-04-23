@@ -1,7 +1,9 @@
 import { getSession } from "@/lib/auth/session";
 import { redirect } from "next/navigation";
+
 import TeamsTable from "./TeamsTable";
 import CompanyConfig from "./CompanyConfig";
+import PaymentProvidersTable from "./PaymentProvidersTable.client";
 
 export default async function SuperadminPage() {
   const session = await getSession();
@@ -17,8 +19,7 @@ export default async function SuperadminPage() {
         <TeamsTable />
       </section>
       <section>
-        <h2 className="text-xl font-semibold mb-2">Configuración de la compañía</h2>
-        <CompanyConfig />
+        <PaymentProvidersTable />
       </section>
     </div>
   );

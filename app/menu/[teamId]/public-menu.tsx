@@ -82,14 +82,23 @@ function PolicyBadges({ policies }: { policies: TeamPolicy }) {
   );
 }
 
+import { useProviderFee } from './useProviderFee';
+
 function ProductCard({
   product,
   onSelect,
+  teamCountry
 }: {
   product: ProductWithAssociations;
   onSelect: (p: ProductWithAssociations) => void;
+  teamCountry: string;
 }) {
   const currency = currencySymbol(product.currency);
+  const { feePercent, feeFixed } = useProviderFee(teamCountry);
+  const basePrice = parseFloat(product.price ?? '0');
+  const priceWithFee = (teamCountry === 'US' || teamCountry === 'United States')
+    ? basePrice + (basePrice * feePercent / 100) + feeFixed
+    : basePrice;
 
   return (
     <div
@@ -119,11 +128,9 @@ function ProductCard({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {product.price && (
-              <span className="font-bold text-gray-900">
-                {currency}{parseFloat(product.price).toFixed(2)}
-              </span>
-            )}
+            <span className="font-bold text-gray-900">
+              {currency}{priceWithFee.toFixed(2)}
+            </span>
             <button
               onClick={e => { e.stopPropagation(); onSelect(product); }}
               className="cursor-pointer w-7 h-7 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shadow-sm"
@@ -421,7 +428,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
             </div>
             <div className="bg-white rounded-xl shadow-sm divide-y px-4">
               {currentCategory.products.map(product => (
-                <ProductCard key={product.id} product={product} onSelect={setSelectedProduct} />
+                <ProductCard key={product.id} product={product} onSelect={setSelectedProduct} teamCountry={team.country!} />
               ))}
             </div>
           </div>
