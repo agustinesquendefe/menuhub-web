@@ -19,12 +19,32 @@ export interface CartItem {
   notes: string;
 }
 
+
 export function computeLineTotal(item: CartItem): number {
+  // Compatibilidad: sin fees
   const base = parseFloat(item.product.price ?? '0');
   const sizePrice = item.selectedSize ? parseFloat(item.selectedSize.price ?? '0') : 0;
   const extrasPrice = item.selectedExtras.reduce((s, e) => s + parseFloat(e.price ?? '0'), 0);
   const additionsPrice = item.selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
   return (base + sizePrice + extrasPrice + additionsPrice) * item.quantity;
+}
+
+// Nuevo: calcula el total de la línea con fees
+export function computeLineTotalWithFee(
+  item: CartItem,
+  feePercent: number,
+  feeFixed: number,
+  applyFee: boolean = true
+): number {
+  const base = parseFloat(item.product.price ?? '0');
+  const sizePrice = item.selectedSize ? parseFloat(item.selectedSize.price ?? '0') : 0;
+  const extrasPrice = item.selectedExtras.reduce((s, e) => s + parseFloat(e.price ?? '0'), 0);
+  const additionsPrice = item.selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
+  let subtotal = base + sizePrice + extrasPrice + additionsPrice;
+  if (applyFee) {
+    subtotal = subtotal + (subtotal * feePercent / 100) + feeFixed;
+  }
+  return subtotal * item.quantity;
 }
 
 interface CartContextType {

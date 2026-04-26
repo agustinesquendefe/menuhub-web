@@ -45,7 +45,7 @@ export const users = pgTable('users', {
 });
 
 export const teams = pgTable('teams', {
-    companyId: integer('company_id').references(() => company.id),
+  companyId: integer('company_id').references(() => company.id),
   openingHours: text('opening_hours'),
   openHour: varchar('open_hour', { length: 10 }), // Ej: '08:00', '8:00 AM'
   closeHour: varchar('close_hour', { length: 10 }), // Ej: '22:00', '10:00 PM'
@@ -62,6 +62,10 @@ export const teams = pgTable('teams', {
   planName: varchar('plan_name', { length: 50 }),
   subscriptionStatus: varchar('subscription_status', { length: 20 }),
   stripeConnectAccountId: text('stripe_connect_account_id').unique(),
+  // Datos bancarios USA
+  bank_name: varchar('bank_name', { length: 100 }),
+  routingNumber: varchar('routing_number', { length: 20 }),
+  accountNumber: varchar('account_number', { length: 20 }),
   // Contact info shown in customer emails and public menu
   contactEmail: varchar('contact_email', { length: 255 }),
   contactPhone: varchar('contact_phone', { length: 50 }),

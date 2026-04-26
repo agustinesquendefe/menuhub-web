@@ -6,6 +6,7 @@ import { teams } from './schema';
 import { eq } from 'drizzle-orm';
 import { validatedActionWithUser } from '@/lib/auth/middleware';
 import { getUserWithTeam, getTeamByUsername } from './queries';
+import { updateStripeConnectAccount } from '@/lib/payments/stripe';
 import { revalidatePath } from 'next/cache';
 
 const updateTeamUsernameSchema = z.object({
@@ -45,6 +46,7 @@ export const updateTeamUsername = validatedActionWithUser(
 
 
 const updateTeamContactSchema = z.object({
+  name: z.string().min(2, 'El nombre es obligatorio').max(100),
   contactEmail: z.string().email('Email inválido').or(z.literal('')).optional(),
   contactPhone: z.string().max(50).optional(),
   line1: z.string().max(300).optional(),
@@ -73,9 +75,13 @@ export const updateTeamContact = validatedActionWithUser(
       return { error: 'No se encontró el equipo' };
     }
 
+    // Obtener datos actuales del equipo
+    const [currentTeam] = await db.select().from(teams).where(eq(teams.id, userWithTeam.teamId));
+
     await db
       .update(teams)
       .set({
+        name: data.name,
         contactEmail: data.contactEmail || null,
         contactPhone: data.contactPhone || null,
         line1: data.line1 || null,
@@ -97,6 +103,34 @@ export const updateTeamContact = validatedActionWithUser(
         updatedAt: new Date(),
       })
       .where(eq(teams.id, userWithTeam.teamId));
+
+    // Si el equipo tiene Stripe Connect, y algún campo relevante cambió, actualiza en Stripe
+    if (currentTeam?.stripeConnectAccountId) {
+      const changed =
+        data.name !== currentTeam.name ||
+        data.contactEmail !== currentTeam.contactEmail ||
+        data.contactPhone !== currentTeam.contactPhone ||
+        data.line1 !== currentTeam.line1 ||
+        data.line2 !== currentTeam.line2 ||
+        data.city !== currentTeam.city ||
+        data.state !== currentTeam.state ||
+        data.zipcode !== currentTeam.zipcode ||
+        data.country !== currentTeam.country;
+      if (changed) {
+        await updateStripeConnectAccount({
+          accountId: currentTeam.stripeConnectAccountId,
+          name: data.name,
+          email: data.contactEmail,
+          phone: data.contactPhone,
+          line1: data.line1,
+          line2: data.line2,
+          city: data.city,
+          state: data.state,
+          zipcode: data.zipcode,
+          country: data.country
+        });
+      }
+    }
 
     revalidatePath('/dashboard/general');
 

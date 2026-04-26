@@ -14,21 +14,12 @@ export default async function StripeConnectPage() {
   if (!user) {
     redirect('/sign-in');
   }
-
-  const userWithTeam = await getUserWithTeam(user.id);
-  if (!userWithTeam?.teamId) {
+  if (user.role !== 'superadmin') {
     redirect('/dashboard');
   }
 
-  const team = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.id, userWithTeam.teamId))
-    .limit(1);
-
-  if (!team[0]) {
-    redirect('/dashboard');
-  }
+  // Si quieres mostrar algo relacionado a la compañía, puedes cargarlo aquí
+  // Ejemplo: lista de teams, cuentas stripe, etc.
 
   return (
     <div className="py-6">
@@ -38,13 +29,7 @@ export default async function StripeConnectPage() {
           Configura tu cuenta de Stripe Connect para recibir pagos de tus clientes
         </p>
       </div>
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 md:px-8 mt-8">
-        <StripeConnectSetup 
-          teamId={userWithTeam.teamId}
-          connectAccountId={team[0].stripeConnectAccountId}
-          teamName={team[0].name}
-        />
-      </div>
+      {/* Aquí puedes renderizar la UI de superadmin para Stripe Connect */}
     </div>
   );
 }

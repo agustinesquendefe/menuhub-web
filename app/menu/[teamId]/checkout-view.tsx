@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { ArrowLeft, CreditCard, Loader2, ShoppingBag } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { useCart, computeLineTotal } from './cart-context';
+import { useCart, computeLineTotalWithFee } from './cart-context';
+import { useProviderFee } from './useProviderFee';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -26,6 +27,7 @@ interface CheckoutViewProps {
   currency: string;
   teamName: string;
   teamId: number;
+  teamCountry: string;
   onBack: () => void;
 }
 
@@ -43,10 +45,14 @@ const ORDER_TYPES: { value: OrderType; label: string; description: string }[] = 
   { value: 'llevar', label: 'Para llevar', description: 'Recoge tu pedido en caja' },
 ];
 
-function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps) {
+
+function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: CheckoutViewProps) {
   const stripe = useStripe();
   const elements = useElements();
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, clearCart } = useCart();
+  // Asumimos que todos los productos son del mismo país (del team), tomamos el primero
+  const { feePercent, feeFixed } = useProviderFee(teamCountry);
+  const totalPrice = items.reduce((s, i) => s + computeLineTotalWithFee(i, feePercent, feeFixed), 0);
 
   const [form, setForm] = useState<FormState>({
     name: '',
@@ -56,6 +62,7 @@ function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps)
     tableNumber: '',
     notes: '',
   });
+
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [cardError, setCardError] = useState<string | null>(null);
@@ -91,20 +98,21 @@ function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps)
 
     try {
       const lineItems = items.map(item => {
-        const base = parseFloat(item.product.price ?? '0');
-        const sizePrice = item.selectedSize ? parseFloat(item.selectedSize.price ?? '0') : 0;
-        const extrasPrice = item.selectedExtras.reduce((s, e) => s + parseFloat(e.price ?? '0'), 0);
-        const additionsPrice = item.selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
-        const unitAmount = Math.round((base + sizePrice + extrasPrice + additionsPrice) * 100);
-
         const options: string[] = [];
+
         if (item.selectedSize) options.push(item.selectedSize.name);
-        item.selectedExtras.forEach(e => options.push(e.name));
-        item.selectedAdditions.forEach(a => options.push(a.name));
+            item.selectedExtras.forEach(e => options.push(e.name));
+            item.selectedAdditions.forEach(a => options.push(a.name));
+          
         const name = options.length > 0
           ? `${item.product.name} (${options.join(', ')})`
           : item.product.name;
 
+        // El unitAmount debe incluir el fee
+        const unitAmount = Math.round(
+          computeLineTotalWithFee({ ...item, quantity: 1 }, feePercent, feeFixed)
+          * 100
+        );
         return { name, unitAmount, quantity: item.quantity, currency: item.product.currency ?? 'MXN' };
       });
 
@@ -186,8 +194,12 @@ function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps)
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900">¡Pago realizado!</h2>
-          <p className="text-gray-500 text-sm">Tu pedido ha sido confirmado. Recibirás un email con el resumen.</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            ¡Pago realizado!
+          </h2>
+          <p className="text-gray-500 text-sm">
+            Tu pedido ha sido confirmado. Recibirás un email con el resumen.
+          </p>
           <button
             onClick={onBack}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors"
@@ -212,8 +224,12 @@ function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps)
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">Finalizar pedido</h1>
-            <p className="text-xs text-gray-400">{teamName}</p>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              Finalizar pedido
+            </h1>
+            <p className="text-xs text-gray-400">
+              {teamName}
+            </p>
           </div>
         </div>
       </header>
@@ -228,7 +244,7 @@ function CheckoutForm({ currency, teamName, teamId, onBack }: CheckoutViewProps)
           </div>
           <div className="divide-y px-5">
             {items.map(item => {
-              const lineTotal = computeLineTotal(item);
+              const lineTotal = computeLineTotalWithFee(item, feePercent, feeFixed);
               const options: string[] = [];
               if (item.selectedSize) options.push(item.selectedSize.name);
               item.selectedExtras.forEach(e => options.push(e.name));

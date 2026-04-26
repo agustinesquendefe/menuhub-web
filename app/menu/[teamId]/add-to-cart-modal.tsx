@@ -4,13 +4,15 @@ import { useState } from 'react';
 import { X, Minus, Plus, AlertTriangle } from 'lucide-react';
 import { Size, Extra, Addition } from '@/lib/db/schema';
 import { ProductWithAssociations, useCart } from './cart-context';
+import { useProviderFee } from './useProviderFee';
 
 interface AddToCartModalProps {
   product: ProductWithAssociations;
   onClose: () => void;
 }
 
-export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
+export default function AddToCartModal({ product, onClose }: AddToCartModalProps) {
+
   const { addItem } = useCart();
 
   const activeSizes = product.sizes.filter(s => s.isActive);
@@ -25,11 +27,18 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
 
   const currency = product.currency === 'MXN' ? '$' : (product.currency ?? '$') + ' ';
 
+  // Obtener el país del producto o del team (por compatibilidad)
+  const teamCountry = (product as any).teamCountry;
+  const { feePercent, feeFixed, isLoading } = useProviderFee(teamCountry);
+
   const base = parseFloat(product.price ?? '0');
   const sizePrice = selectedSize ? parseFloat(selectedSize.price ?? '0') : 0;
   const extrasPrice = selectedExtras.reduce((s, e) => s + parseFloat(e.price ?? '0'), 0);
   const additionsPrice = selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
-  const unitPrice = base + sizePrice + extrasPrice + additionsPrice;
+  let unitPrice = base + sizePrice + extrasPrice + additionsPrice;
+  if ((feePercent > 0 || feeFixed > 0) && !isLoading) {
+    unitPrice = unitPrice + (unitPrice * feePercent / 100) + feeFixed;
+  }
   const total = unitPrice * quantity;
 
   function toggleExtra(extra: Extra) {
@@ -238,9 +247,19 @@ export function AddToCartModal({ product, onClose }: AddToCartModalProps) {
           <button
             onClick={handleAdd}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-semibold py-3 rounded-xl flex items-center justify-between px-5 transition-all"
+            disabled={isLoading}
           >
             <span>Agregar al carrito</span>
-            <span>{currency}{total.toFixed(2)}</span>
+            {isLoading ? (
+              <span className="font-bold text-gray-400 animate-pulse">Cargando...</span>
+            ) : (
+              <span>
+                {currency}{total.toFixed(2)}
+                {(feePercent > 0 || feeFixed > 0) && (
+                  <span className="ml-1 text-xs text-orange-200 font-normal">incl. fee</span>
+                )}
+              </span>
+            )}
           </button>
         </div>
       </div>

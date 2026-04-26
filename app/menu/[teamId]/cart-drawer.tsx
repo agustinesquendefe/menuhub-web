@@ -1,16 +1,21 @@
 'use client';
 
 import { X, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
-import { useCart, computeLineTotal } from './cart-context';
+import { useCart, computeLineTotalWithFee } from './cart-context';
+import { useProviderFee } from './useProviderFee';
 
 interface CartDrawerProps {
   currency: string;
   onClose: () => void;
   onCheckout: () => void;
+  teamCountry: string;
 }
 
-export function CartDrawer({ currency, onClose, onCheckout }: CartDrawerProps) {
-  const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
+export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartDrawerProps) {
+  const { items, removeItem, updateQuantity, clearCart } = useCart();
+  // Asumimos que todos los productos son del mismo país (del team), tomamos el primero
+  const { feePercent, feeFixed } = useProviderFee(teamCountry);
+  const totalPrice = items.reduce((s, i) => s + computeLineTotalWithFee(i, feePercent, feeFixed), 0);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -45,7 +50,7 @@ export function CartDrawer({ currency, onClose, onCheckout }: CartDrawerProps) {
           ) : (
             <div className="space-y-4">
               {items.map(item => {
-                const lineTotal = computeLineTotal(item);
+                const lineTotal = computeLineTotalWithFee(item, feePercent, feeFixed);
                 const options: string[] = [];
                 if (item.selectedSize) options.push(item.selectedSize.name);
                 item.selectedExtras.forEach(e => options.push(e.name));

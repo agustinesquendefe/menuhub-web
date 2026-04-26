@@ -1,3 +1,48 @@
+// Actualiza los datos del Stripe Connect Account si cambian en el equipo
+export async function updateStripeConnectAccount({
+  accountId,
+  name,
+  email,
+  phone,
+  line1,
+  line2,
+  city,
+  state,
+  zipcode,
+  country
+}: {
+  accountId: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  country?: string;
+}) {
+  if (!accountId) return;
+  const update: any = {};
+  if (name) update["business_profile"] = { name };
+  if (email) update["email"] = email;
+  if (phone) update["company"] = { ...update["company"], phone };
+  if (line1 || line2 || city || state || zipcode || country) {
+    update["company"] = {
+      ...update["company"],
+      address: {
+        ...(line1 ? { line1 } : {}),
+        ...(line2 ? { line2 } : {}),
+        ...(city ? { city } : {}),
+        ...(state ? { state } : {}),
+        ...(zipcode ? { postal_code: zipcode } : {}),
+        ...(country ? { country } : {})
+      }
+    };
+  }
+  if (Object.keys(update).length === 0) return;
+  await stripe.accounts.update(accountId, update);
+}
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
 import { Team } from '@/lib/db/schema';

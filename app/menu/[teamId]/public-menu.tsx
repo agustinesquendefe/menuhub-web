@@ -5,7 +5,9 @@ import { OpeningHoursPopover } from '@/components/ui/OpeningHoursPopover';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertTriangle, ShoppingCart, Plus, CheckCircle2 } from 'lucide-react';
-import { FaClock, FaEnvelope, FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+import { FaEnvelope, FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
+import AddToCartModal from './add-to-cart-modal';
+import { computeLineTotalWithFee } from './cart-context';
 
 function getFullAddress(team: Team) {
   return [
@@ -38,7 +40,6 @@ function MapIframe({ address }: { address: string }) {
 }
 import { Team, TeamPolicy, Category } from '@/lib/db/schema';
 import { CartProvider, ProductWithAssociations, useCart } from './cart-context';
-import { AddToCartModal } from './add-to-cart-modal';
 import { CartDrawer } from './cart-drawer';
 import { CheckoutView } from './checkout-view';
 
@@ -71,7 +72,9 @@ function PolicyBadges({ policies }: { policies: TeamPolicy }) {
     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
       <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
       <div>
-        <p className="text-sm font-semibold text-amber-800 mb-1">Avisos del establecimiento</p>
+        <p className="text-sm font-semibold text-amber-800 mb-1">
+          Avisos del establecimiento
+        </p>
         <ul className="list-disc list-inside space-y-0.5">
           {warnings.map(w => (
             <li key={w} className="text-sm text-amber-700">{w}</li>
@@ -93,17 +96,23 @@ function ProductCard({
   onSelect: (p: ProductWithAssociations) => void;
   teamCountry: string;
 }) {
+
+
   const currency = currencySymbol(product.currency);
-  const { feePercent, feeFixed } = useProviderFee(teamCountry);
+  const { feePercent, feeFixed, isLoading } = useProviderFee(teamCountry);
   const basePrice = parseFloat(product.price ?? '0');
-  const priceWithFee = (teamCountry === 'US' || teamCountry === 'United States')
-    ? basePrice + (basePrice * feePercent / 100) + feeFixed
-    : basePrice;
+  let priceWithFee = basePrice;
+  if ((feePercent > 0 || feeFixed > 0) && !isLoading) {
+    priceWithFee = basePrice + (basePrice * feePercent / 100) + feeFixed;
+  }
+
+  // Aseguramos que el producto tenga el campo teamCountry para el carrito
+  const productWithCountry = { ...product, teamCountry };
 
   return (
     <div
       className="flex container gap-4 py-4 border-b last:border-0 cursor-pointer group"
-      onClick={() => onSelect(product)}
+      onClick={() => onSelect(productWithCountry)}
     >
       {product.image && product.showPicture && (
         <div className="shrink-0">
@@ -128,11 +137,18 @@ function ProductCard({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="font-bold text-gray-900">
-              {currency}{priceWithFee.toFixed(2)}
-            </span>
+            {isLoading ? (
+              <span className="font-bold text-gray-400 animate-pulse">Cargando...</span>
+            ) : (
+              <span className="font-bold text-gray-900">
+                {currency}{priceWithFee.toFixed(2)}
+                {(feePercent > 0 || feeFixed > 0) && (
+                  <span className="ml-1 text-xs text-orange-500 font-normal">incl. fee</span>
+                )}
+              </span>
+            )}
             <button
-              onClick={e => { e.stopPropagation(); onSelect(product); }}
+              onClick={e => { e.stopPropagation(); onSelect(productWithCountry); }}
               className="cursor-pointer w-7 h-7 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shadow-sm"
               aria-label={`Agregar ${product.name}`}
             >
@@ -142,24 +158,34 @@ function ProductCard({
         </div>
 
         {product.description && (
-          <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
+          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+            {product.description}
+          </p>
         )}
 
         {/* Options chips */}
         {(product.sizes.filter(s => s.isActive).length > 0 ||
           product.extras.filter(e => e.isActive).length > 0 ||
           product.additions.filter(a => a.isActive).length > 0) && (
+          
           <div className="flex flex-wrap gap-1 mt-2">
             {product.sizes.filter(s => s.isActive).map(s => (
-              <span key={s.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{s.name}</span>
+              <span key={s.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                {s.name}
+              </span>
             ))}
             {product.extras.filter(e => e.isActive).map(e => (
-              <span key={e.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{e.name}</span>
+              <span key={e.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                {e.name}
+              </span>
             ))}
             {product.additions.filter(a => a.isActive).map(a => (
-              <span key={a.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{a.name}</span>
+              <span key={a.id} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                {a.name}
+              </span>
             ))}
           </div>
+          
         )}
       </div>
     </div>
@@ -184,8 +210,16 @@ function CartIconButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function FloatingCartButton({ currency, onClick }: { currency: string; onClick: () => void }) {
-  const { totalItems, totalPrice } = useCart();
+function FloatingCartButton({ currency, onClick, teamCountry }: { currency: string; onClick: () => void; teamCountry: string }) {
+  const { items, totalItems } = useCart();
+  const { feePercent, feeFixed, isLoading } = useProviderFee(teamCountry);
+
+  // Calcular el total con fees
+  const totalWithFee = items.reduce(
+    (sum, item) => sum + computeLineTotalWithFee(item, feePercent, feeFixed),
+    0
+  );
+
   if (totalItems === 0) return null;
 
   return (
@@ -199,8 +233,16 @@ function FloatingCartButton({ currency, onClick }: { currency: string; onClick: 
           {totalItems}
         </span>
       </div>
-      <span className="font-semibold">Ver pedido</span>
-      <span className="font-bold">{currency}{totalPrice.toFixed(2)}</span>
+      <span className="font-semibold">
+        Ver pedido
+      </span>
+      <span className="font-bold">{currency}
+        {isLoading ? '...'
+          : totalWithFee.toFixed(2)}
+        {(feePercent > 0 || feeFixed > 0) && !isLoading && (
+          <span className="ml-1 text-xs text-orange-200 font-normal">incl. fee</span>
+        )}
+      </span>
     </button>
   );
 }
@@ -229,8 +271,12 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
         <div className="bg-white rounded-2xl shadow-sm p-10 max-w-sm w-full space-y-4">
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
-          <h2 className="text-2xl font-bold text-gray-900">¡Pago realizado!</h2>
-          <p className="text-gray-500 text-sm">Tu pedido ha sido confirmado. Recibirás un email con el resumen.</p>
+          <h2 className="text-2xl font-bold text-gray-900">
+            ¡Pago realizado!
+          </h2>
+          <p className="text-gray-500 text-sm">
+            Tu pedido ha sido confirmado. Recibirás un email con el resumen.
+          </p>
           <button
             onClick={() => router.replace(window.location.pathname)}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors"
@@ -249,6 +295,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
         teamName={team.name}
         teamId={team.id}
         onBack={() => setCheckoutOpen(false)}
+        teamCountry={team.country!}
       />
     );
   }
@@ -291,6 +338,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
 
             {/* Columna 2-5: Datos del restaurante y contacto */}
             <div className="md:col-span-4 flex flex-col gap-4">
+              
               <div className="flex flex-row items-start justify-between py-3 sm:px-0 px-4 rounded-xl">
                 <div className="flex flex-col">
                   <h1 className="text-2xl font-extrabold text-gray-900 text-left w-full">
@@ -306,6 +354,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full mt-2">
+                
                 {/* Open Hours */}
                 <div className="col-span-4 sm:col-span-2 p-3">
                   
@@ -414,7 +463,9 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
 
         {/* Empty state */}
         {categories.length === 0 && (
-          <p className="text-center text-gray-400 py-16">El menú está vacío por el momento.</p>
+          <p className="text-center text-gray-400 py-16">
+            El menú está vacío por el momento.
+          </p>
         )}
 
         {/* Category section */}
@@ -436,7 +487,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
       </main>
 
       {/* Floating cart button */}
-      <FloatingCartButton currency={currency} onClick={() => setCartOpen(true)} />
+      <FloatingCartButton currency={currency} onClick={() => setCartOpen(true)} teamCountry={team.country!} />
 
       {/* Add-to-cart modal */}
       {selectedProduct && (
@@ -452,6 +503,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
           currency={currency}
           onClose={() => setCartOpen(false)}
           onCheckout={() => setCheckoutOpen(true)}
+          teamCountry={team.country!}
         />
       )}
 

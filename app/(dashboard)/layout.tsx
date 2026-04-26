@@ -79,24 +79,28 @@ function UserMenu() {
             <span>Dashboard</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Link href="/dashboard/menu" className="flex w-full items-center">
-            <UtensilsCrossed className="mr-2 h-4 w-4" />
-            <span>Menú</span>
-          </Link>
-        </DropdownMenuItem>
+        {user.role !== 'superadmin' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/dashboard/menu" className="flex w-full items-center">
+              <UtensilsCrossed className="mr-2 h-4 w-4" />
+              <span>Menú</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <Link href="/dashboard/policies" className="flex w-full items-center">
             <ShieldAlert className="mr-2 h-4 w-4" />
             <span>Políticas</span>
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem className="cursor-pointer">
-          <Link href="/dashboard/stripe-connect" className="flex w-full items-center">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Pagos (Stripe)</span>
-          </Link>
-        </DropdownMenuItem>
+        {user.role === 'superadmin' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/dashboard/stripe-connect" className="flex w-full items-center">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Pagos (Stripe)</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem className="cursor-pointer">
           <Link href="/dashboard/general" className="flex w-full items-center">
             <Settings className="mr-2 h-4 w-4" />

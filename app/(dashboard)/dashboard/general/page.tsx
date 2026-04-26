@@ -177,7 +177,7 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
   return (
     <form className="space-y-8" action={customAction}>
       {/* Bloque: Perfil y Banner */}
-      <div className="rounded-xl border bg-white p-4 space-y-4">
+      <div className="rounded-xl border bg-white p-4 space-y-4"> 
         <h3 className="font-semibold text-gray-800 mb-2">Perfil y Banner</h3>
         <div>
           <Label htmlFor="profilePictureFile" className="mb-2">Foto de perfil</Label>
@@ -194,6 +194,10 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
             <img src={bannerPreview} alt="Banner" className="mt-2 max-h-32 rounded bg-gray-50 border p-2 w-full object-cover" />
           )}
           <p className="mt-1 text-xs text-gray-400">Imagen de portada en el menú público.</p>
+        </div>
+        <div>
+          <Label htmlFor="name" className="mb-2">Nombre del equipo</Label>
+          <Input id="name" name="name" placeholder="Ej. Mi Restaurante" defaultValue={team?.name ?? ''} required />
         </div>
         <div>
           <Label htmlFor="description" className="mb-2">Descripción</Label>
@@ -279,7 +283,7 @@ function TeamContactForm({ state, action, pending }: { state: ActionState; actio
       {state.error && <p className="text-red-500 text-sm">{state.error}</p>}
       {state.success && <p className="text-green-500 text-sm">{state.success}</p>}
 
-      <Button type="submit" className="bg-orange-500 hover:bg-orange-600 text-white" disabled={pending || uploading}>
+      <Button type="submit" className="bg-orange-500 cursor-pointer hover:bg-orange-600 text-white" disabled={pending || uploading}>
         {pending ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando...</>) : 'Guardar'}
       </Button>
     </form>
@@ -309,7 +313,9 @@ export default function GeneralPage() {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Account Information</CardTitle>
+            <CardTitle>
+              Account Information
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form className="space-y-4" action={accountFormAction}>
