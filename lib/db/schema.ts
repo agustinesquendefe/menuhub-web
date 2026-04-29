@@ -1,3 +1,48 @@
+// ─── Company Fees ───────────────────────────────────────────────────────────
+export const companyFees = pgTable('company_fees', {
+  id: serial('id').primaryKey(),
+  companyId: integer('company_id').notNull().references(() => company.id, { onDelete: 'cascade' }),
+  country: varchar('country', { length: 2 }).notNull(),
+  state: varchar('state', { length: 2 }), // nullable, solo para US
+  feePercent: decimal('fee_percent', { precision: 6, scale: 3 }).notNull().default('0'),
+  feeFixed: decimal('fee_fixed', { precision: 10, scale: 2 }).notNull().default('0'),
+  currency: varchar('currency', { length: 8 }).notNull().default('USD'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export type CompanyFee = typeof companyFees.$inferSelect;
+export type NewCompanyFee = typeof companyFees.$inferInsert;
+// ─── Orders ─────────────────────────────────────────────────────────────────
+export const orders = pgTable('orders', {
+  id: serial('id').primaryKey(),
+  orderCode: varchar('order_code', { length: 12 }).notNull().unique(),
+  teamId: integer('team_id').notNull().references(() => teams.id, { onDelete: 'cascade' }),
+  products: text('products').notNull(), // JSON stringified array
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
+  taxes: decimal('taxes', { precision: 10, scale: 2 }).notNull(),
+  total: decimal('total', { precision: 10, scale: 2 }).notNull(),
+  type: varchar('type', { length: 32 }).notNull(),
+  payment: varchar('payment', { length: 32 }).notNull(),
+  status: varchar('status', { length: 32 }).notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }),
+  customerName: varchar('customer_name', { length: 100 }),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  customerPhone: varchar('customer_phone', { length: 30 }),
+  pickupNotificationCount: integer('pickup_notification_count').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  team: one(teams, {
+    fields: [orders.teamId],
+    references: [teams.id],
+  }),
+}));
+
+export type Order = typeof orders.$inferSelect;
+export type NewOrder = typeof orders.$inferInsert;
 export const company = pgTable('company', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 100 }).notNull(),

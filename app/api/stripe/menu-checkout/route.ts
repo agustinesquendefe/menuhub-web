@@ -18,6 +18,12 @@ export interface MenuCheckoutPayload {
   tableNumber?: string;
   notes?: string;
   lineItems: MenuLineItem[];
+  subtotal?: number;
+  taxPercent?: number;
+  taxFixed?: number;
+  taxAmount?: number;
+  state?: string;
+  total?: number;
 }
 
 export async function POST(request: NextRequest) {
@@ -32,6 +38,12 @@ export async function POST(request: NextRequest) {
       tableNumber,
       notes,
       lineItems,
+      subtotal,
+      taxPercent,
+      taxFixed,
+      taxAmount,
+      state,
+      total,
     } = body;
 
     if (!teamId || !lineItems?.length || !customerEmail || !customerName) {
@@ -61,10 +73,16 @@ export async function POST(request: NextRequest) {
         orderType,
         tableNumber: tableNumber ?? '',
         notes: notes ?? '',
-        items: lineItems.map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 500),
+        state: state ?? '',
+        subtotal: String(subtotal ?? (totalAmount / 100) - (taxAmount ?? 0)),
+        taxPercent: String(taxPercent ?? 0),
+        taxFixed: String(taxFixed ?? 0),
+        taxAmount: String(taxAmount ?? 0),
+        total: String(total ?? totalAmount / 100),
+        items: lineItems.filter(i => i.name !== 'Fees').map(i => `${i.quantity}x ${i.name}`).join(', ').slice(0, 500),
         // JSON for email: [{name, quantity, unitAmount, currency}]
         itemsJson: JSON.stringify(
-          lineItems.map(i => ({
+          lineItems.filter(i => i.name !== 'Fees').map(i => ({
             name: i.name,
             quantity: i.quantity,
             unitAmount: Math.round(i.unitAmount),

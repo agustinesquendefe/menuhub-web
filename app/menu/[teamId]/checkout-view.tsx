@@ -6,6 +6,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { useCart, computeLineTotalWithFee } from './cart-context';
 import { useProviderFee } from './useProviderFee';
+import { useCompanyFee } from './useCompanyFee';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -28,6 +29,8 @@ interface CheckoutViewProps {
   teamName: string;
   teamId: number;
   teamCountry: string;
+  teamState?: string | null;
+  companyId?: number | null;
   onBack: () => void;
 }
 
@@ -45,14 +48,35 @@ const ORDER_TYPES: { value: OrderType; label: string; description: string }[] = 
   { value: 'llevar', label: 'Para llevar', description: 'Recoge tu pedido en caja' },
 ];
 
+function normalizeStateCode(state: string | null | undefined) {
+  const normalized = state?.trim().toUpperCase();
+  if (!normalized) return '';
+  return normalized.slice(0, 2);
+}
 
-function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: CheckoutViewProps) {
+function CheckoutForm(props: CheckoutViewProps) {
+  const { currency, teamName, teamId, teamCountry, teamState, companyId, onBack } = props;
   const stripe = useStripe();
   const elements = useElements();
   const { items, clearCart } = useCart();
-  // Asumimos que todos los productos son del mismo país (del team), tomamos el primero
-  const { feePercent, feeFixed } = useProviderFee(teamCountry);
-  const totalPrice = items.reduce((s, i) => s + computeLineTotalWithFee(i, feePercent, feeFixed), 0);
+  const stateCode = normalizeStateCode(teamState);
+  const {
+    feePercent: providerFeePercent,
+    feeFixed: providerFeeFixed,
+    isLoading: isProviderFeeLoading,
+  } = useProviderFee(teamCountry);
+  const {
+    feePercent: taxPercent,
+    feeFixed: taxFixed,
+    isLoading: isTaxLoading,
+  } = useCompanyFee(undefined, undefined, companyId, teamId);
+
+  const subtotal = items.reduce(
+    (s, i) => s + computeLineTotalWithFee(i, providerFeePercent, providerFeeFixed),
+    0
+  );
+  const companyFeeAmount = (subtotal * taxPercent / 100) + taxFixed;
+  const totalPrice = subtotal + companyFeeAmount;
 
   const [form, setForm] = useState<FormState>({
     name: '',
@@ -99,22 +123,24 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
     try {
       const lineItems = items.map(item => {
         const options: string[] = [];
-
         if (item.selectedSize) options.push(item.selectedSize.name);
-            item.selectedExtras.forEach(e => options.push(e.name));
-            item.selectedAdditions.forEach(a => options.push(a.name));
-          
+        item.selectedExtras.forEach(e => options.push(e.name));
+        item.selectedAdditions.forEach(a => options.push(a.name));
         const name = options.length > 0
           ? `${item.product.name} (${options.join(', ')})`
           : item.product.name;
-
-        // El unitAmount debe incluir el fee
-        const unitAmount = Math.round(
-          computeLineTotalWithFee({ ...item, quantity: 1 }, feePercent, feeFixed)
-          * 100
-        );
+        const unitSubtotal = computeLineTotalWithFee(item, providerFeePercent, providerFeeFixed) / item.quantity;
+        const unitAmount = Math.round(unitSubtotal * 100);
         return { name, unitAmount, quantity: item.quantity, currency: item.product.currency ?? 'MXN' };
       });
+      if (companyFeeAmount > 0) {
+        lineItems.push({
+          name: 'Fees',
+          unitAmount: Math.round(companyFeeAmount * 100),
+          quantity: 1,
+          currency: items[0]?.product.currency ?? 'MXN',
+        });
+      }
 
       const res = await fetch('/api/stripe/menu-checkout', {
         method: 'POST',
@@ -128,6 +154,12 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
           tableNumber: form.tableNumber,
           notes: form.notes,
           lineItems,
+          subtotal,
+          taxPercent: taxPercent || 0,
+          taxFixed: taxFixed || 0,
+          taxAmount: companyFeeAmount,
+          state: stateCode || undefined,
+          total: totalPrice,
         }),
       });
 
@@ -187,7 +219,7 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
+      <div className="bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
         <div className="bg-white rounded-2xl shadow-sm p-10 max-w-sm w-full space-y-4">
           <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
             <svg className="w-8 h-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
@@ -234,7 +266,7 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5 pb-32">
+      <main className="max-w-2xl mx-auto px-4 py-6 space-y-5 pb-[calc(18rem+env(safe-area-inset-bottom))]">
 
         {/* Order summary */}
         <section className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -244,12 +276,10 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
           </div>
           <div className="divide-y px-5">
             {items.map(item => {
-              const lineTotal = computeLineTotalWithFee(item, feePercent, feeFixed);
               const options: string[] = [];
               if (item.selectedSize) options.push(item.selectedSize.name);
               item.selectedExtras.forEach(e => options.push(e.name));
               item.selectedAdditions.forEach(a => options.push(a.name));
-
               return (
                 <div key={item.cartId} className="py-3 flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -265,15 +295,11 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
                     )}
                   </div>
                   <span className="text-sm font-bold text-gray-900 shrink-0">
-                    {currency}{lineTotal.toFixed(2)}
+                    {currency}{computeLineTotalWithFee(item, providerFeePercent, providerFeeFixed).toFixed(2)}
                   </span>
                 </div>
               );
             })}
-          </div>
-          <div className="px-5 py-4 border-t bg-gray-50 flex items-center justify-between">
-            <span className="font-semibold text-gray-700">Total</span>
-            <span className="text-xl font-bold text-gray-900">{currency}{totalPrice.toFixed(2)}</span>
           </div>
         </section>
 
@@ -430,23 +456,35 @@ function CheckoutForm({ currency, teamName, teamId, onBack, teamCountry }: Check
       </main>
 
       {/* Sticky footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 py-4 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-10">
         <div className="max-w-2xl mx-auto space-y-2">
           <div className="flex items-center justify-between px-1 mb-1">
             <span className="text-sm text-gray-500">
               {items.length} {items.length === 1 ? 'producto' : 'productos'}
             </span>
-            <span className="font-bold text-gray-900">{currency}{totalPrice.toFixed(2)}</span>
+          </div>
+          {/* Desglose en el footer */}
+          <div className="flex items-center justify-between px-1 text-sm">
+            <span className="text-gray-700">Subtotal</span>
+            <span className="text-gray-900">{currency}{subtotal.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between px-1 text-sm">
+            <span className="text-gray-700">Fees</span>
+            <span className="text-gray-900">{currency}{companyFeeAmount.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between px-1 text-base font-bold border-t pt-2">
+            <span className="text-gray-900">Total</span>
+            <span className="text-gray-900">{currency}{totalPrice.toFixed(2)}</span>
           </div>
           <button
             onClick={handleSubmit}
-            disabled={isLoading || !stripe}
+            disabled={isLoading || !stripe || isProviderFeeLoading || isTaxLoading}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition-all text-base flex items-center justify-center gap-2"
           >
-            {isLoading ? (
+            {isLoading || isProviderFeeLoading || isTaxLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Procesando pago...
+                {isProviderFeeLoading || isTaxLoading ? 'Calculando total...' : 'Procesando pago...'}
               </>
             ) : (
               <>

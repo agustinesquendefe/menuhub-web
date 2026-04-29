@@ -7,8 +7,8 @@ export function useProviderFee(country: string | undefined) {
   );
   if (!data || !Array.isArray(data) || data.length === 0) return { feePercent: 0, feeFixed: 0, isLoading };
   return {
-    feePercent: parseFloat(data[0].feePercent),
-    feeFixed: parseFloat(data[0].feeFixed),
+    feePercent: Number(data[0].feePercent) || 0,
+    feeFixed: Number(data[0].feeFixed) || 0,
     isLoading
   };
 }

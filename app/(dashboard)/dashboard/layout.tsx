@@ -21,6 +21,7 @@ export default function DashboardLayout({
   let navItems = [
     { href: '/dashboard', icon: Users, label: 'Team' },
     { href: '/dashboard/menu', icon: Menu, label: 'Menú' },
+    { href: '/dashboard/orders', icon: Activity, label: 'Órdenes' },
     { href: '/dashboard/general', icon: Settings, label: 'General' },
     { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
     { href: '/dashboard/security', icon: Shield, label: 'Security' }
@@ -31,7 +32,7 @@ export default function DashboardLayout({
     navItems = [
       { href: '/dashboard/superadmin', icon: Users, label: 'Teams' },
       { href: '/dashboard/superadmin/company', icon: Settings, label: 'Compañía' },
-      // { href: '/dashboard/general', icon: Settings, label: 'General' },
+      { href: '/dashboard/superadmin/fees', icon: Menu, label: 'Fees' },
       { href: '/dashboard/activity', icon: Activity, label: 'Activity' },
       { href: '/dashboard/security', icon: Shield, label: 'Security' }
     ];

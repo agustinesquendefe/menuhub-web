@@ -296,6 +296,8 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
         teamId={team.id}
         onBack={() => setCheckoutOpen(false)}
         teamCountry={team.country!}
+        teamState={team.state}
+        companyId={team.companyId}
       />
     );
   }

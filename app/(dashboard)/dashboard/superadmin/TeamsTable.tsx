@@ -37,6 +37,7 @@ export default async function TeamsTable() {
             <th className="text-left p-2">Account #</th>
             <th className="text-left p-2">Stripe Connect Account ID</th>
             <th className="text-left p-2">Creado</th>
+            <th className="text-left p-2">Órdenes</th>
             <th className="text-left p-2">Editar</th>
           </tr>
         </thead>
@@ -54,6 +55,16 @@ export default async function TeamsTable() {
                 <td className="p-2">{team.accountNumber || ''}</td>
                 <td className="p-2">{team.stripeConnectAccountId || ''}</td>
                 <td className="p-2">{new Date(team.createdAt).toLocaleDateString()}</td>
+                <td className="p-2">
+                  <a
+                    href={`/dashboard/superadmin/orders?teamId=${team.id}`}
+                    className="text-blue-600 underline hover:text-blue-800 text-xs"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Ver órdenes
+                  </a>
+                </td>
                 <td className="p-2">
                   <Dialog.Trigger asChild>
                     <Button size="sm" variant="outline" className='cursor-pointer'>Editar</Button>

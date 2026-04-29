@@ -206,3 +206,148 @@ export async function sendOrderConfirmation(params: SendOrderConfirmationParams)
     html,
   });
 }
+
+interface SendOrderNotificationParams {
+  to: string;
+  customerName?: string | null;
+  orderCode?: string | null;
+  team: {
+    name: string;
+    contactEmail?: string | null;
+    contactPhone?: string | null;
+  };
+}
+
+function notificationHtml({
+  title,
+  message,
+  customerName,
+  orderCode,
+  team,
+}: SendOrderNotificationParams & { title: string; message: string }) {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${title}</title>
+</head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#f97316;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:22px;font-weight:800;color:#fff;">${team.name}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px;">
+              <h2 style="margin:0 0 12px;font-size:20px;color:#111827;">${title}</h2>
+              <p style="margin:0 0 14px;font-size:14px;color:#374151;line-height:1.6;">Hola${customerName ? `, ${customerName}` : ''}.</p>
+              <p style="margin:0 0 18px;font-size:14px;color:#374151;line-height:1.6;">${message}</p>
+              ${orderCode ? `<p style="margin:0 0 18px;font-size:13px;color:#6b7280;">Orden: <strong>#${orderCode}</strong></p>` : ''}
+              ${team.contactPhone ? `<p style="margin:4px 0;font-size:13px;color:#6b7280;">Teléfono: ${team.contactPhone}</p>` : ''}
+              ${team.contactEmail ? `<p style="margin:4px 0;font-size:13px;color:#6b7280;">Email: ${team.contactEmail}</p>` : ''}
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:18px 32px;text-align:center;border-top:1px solid #f3f4f6;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;">Powered by <strong style="color:#f97316;">MenuHub</strong></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendOrderStatusEmail(
+  params: SendOrderNotificationParams & { status: 'completada' | 'cancelada' }
+) {
+  const completed = params.status === 'completada';
+  const title = completed ? 'Tu pedido fue completado' : 'Tu pedido fue cancelado';
+  const message = completed
+    ? 'Tu pedido ha sido marcado como completado. Gracias por ordenar con nosotros.'
+    : 'Tu pedido ha sido cancelado. Si tienes preguntas, contacta al restaurante.';
+
+  return resend.emails.send({
+    from: 'MenuHub <no-reply@menuhub.xyz>',
+    to: params.to,
+    replyTo: params.team.contactEmail ?? undefined,
+    subject: `${completed ? '✅' : '❌'} ${title} en ${params.team.name}`,
+    html: notificationHtml({ ...params, title, message }),
+  });
+}
+
+export async function sendPickupReadyEmail(params: SendOrderNotificationParams) {
+  const title = 'Tu pedido está listo para recoger';
+  const message = 'Tu pedido ya está listo. Puedes pasar a recogerlo en el restaurante.';
+
+  return resend.emails.send({
+    from: 'MenuHub <no-reply@menuhub.xyz>',
+    to: params.to,
+    replyTo: params.team.contactEmail ?? undefined,
+    subject: `📦 Pedido listo para recoger en ${params.team.name}`,
+    html: notificationHtml({ ...params, title, message }),
+  });
+}
+
+export async function sendNewServiceSaleEmail({
+  customerEmail,
+  customerName,
+  subscriptionId,
+  customerId,
+  source,
+}: {
+  customerEmail?: string | null;
+  customerName?: string | null;
+  subscriptionId?: string | null;
+  customerId?: string | null;
+  source?: string | null;
+}) {
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nuevo servicio contratado</title>
+</head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#f97316;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;font-size:22px;font-weight:800;color:#fff;">Nuevo servicio contratado</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px;font-size:14px;color:#374151;line-height:1.6;">
+              <p style="margin:0 0 14px;">Se completó un pago de suscripción para contratar el servicio de menú digital.</p>
+              <p style="margin:6px 0;"><strong>Cliente:</strong> ${customerName || 'No informado'}</p>
+              <p style="margin:6px 0;"><strong>Email:</strong> ${customerEmail || 'No informado'}</p>
+              <p style="margin:6px 0;"><strong>Stripe Customer:</strong> ${customerId || 'No informado'}</p>
+              <p style="margin:6px 0;"><strong>Suscripción:</strong> ${subscriptionId || 'No informado'}</p>
+              <p style="margin:6px 0;"><strong>Origen:</strong> ${source || 'No informado'}</p>
+              <p style="margin:18px 0 0;">Contactar al cliente para iniciar la configuración del team.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return resend.emails.send({
+    from: 'MenuHub <no-reply@menuhub.xyz>',
+    to: 'sales@menuhub.xyz',
+    subject: 'Nuevo servicio de menú contratado',
+    html,
+  });
+}

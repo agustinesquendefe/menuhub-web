@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/payments/stripe';
 import { getTeamById } from '@/lib/db/queries';
 import { sendOrderConfirmation, OrderItem } from '@/lib/email/resend';
+import { createOrderPublic } from '@/lib/db/order-actions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,12 +35,38 @@ export async function POST(request: NextRequest) {
     const itemsJson = paymentIntent.metadata?.itemsJson ?? '';
     const totalAmount = paymentIntent.amount;
     const currency = paymentIntent.currency;
+    const metadataSubtotal = Number(paymentIntent.metadata?.subtotal);
+    const metadataFees = Number(paymentIntent.metadata?.taxAmount);
+    const total = totalAmount / 100;
+    const fees = Number.isFinite(metadataFees) ? metadataFees : 0;
+    const subtotal = Number.isFinite(metadataSubtotal) ? metadataSubtotal : total - fees;
 
     let items: OrderItem[] = [];
     try {
       if (itemsJson) items = JSON.parse(itemsJson) as OrderItem[];
     } catch {
       items = [];
+    }
+
+
+    // Crear la orden en la base de datos
+    try {
+      await createOrderPublic({
+        teamId: Number(teamId),
+        products: JSON.stringify(items),
+        subtotal: subtotal.toFixed(2),
+        taxes: fees.toFixed(2),
+        total: total.toFixed(2),
+        type: orderType,
+        payment: 'stripe',
+        status: 'pagado',
+        price: total.toFixed(2),
+        customerName,
+        customerEmail,
+        customerPhone,
+      });
+    } catch (err) {
+      console.error('[order-confirmation] Error creando orden en DB:', err);
     }
 
     await sendOrderConfirmation({
@@ -56,8 +83,10 @@ export async function POST(request: NextRequest) {
         name: team.name,
         contactEmail: team.contactEmail,
         contactPhone: team.contactPhone,
-        address: team.address,
-        logoUrl: team.logoUrl,
+        address: [team.line1, team.line2, team.city, team.state, team.zipcode, team.country]
+          .filter(Boolean)
+          .join(', '),
+        logoUrl: team.profilePictureUrl,
       },
     });
 
