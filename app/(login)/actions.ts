@@ -105,6 +105,10 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     return { redirectTo: '/dashboard/superadmin' };
   }
 
+  if (foundUser.role === 'owner') {
+    redirect('/dashboard');
+  }
+
   // Verify if user has an active subscription
   if (foundTeam) {
     const hasActiveSubscription =

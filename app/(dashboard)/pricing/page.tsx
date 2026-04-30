@@ -1,12 +1,18 @@
 import { checkoutAction } from '@/lib/payments/actions';
 import { Check } from 'lucide-react';
+import Link from 'next/link';
 import { stripe } from '@/lib/payments/stripe';
 import { SubmitButton } from './submit-button';
+import { db } from '@/lib/db/drizzle';
+import { company } from '@/lib/db/schema';
 
 // Prices are fresh for one hour max
 export const revalidate = 3600;
 
 export default async function PricingPage() {
+  const [companyInfo] = await db.select().from(company).limit(1);
+  const companyName = companyInfo?.name || 'MenuHub';
+
   // Get prices from environment variables
   const subscriptionPriceId = process.env.PRICE_ID;
   const setupPriceId = process.env.SETUP_PRICE_ID;
@@ -14,10 +20,11 @@ export default async function PricingPage() {
   if (!subscriptionPriceId) {
     return (
       <main className="min-h-screen bg-gradient-to-b from-white to-neutral-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+        <div className="mx-auto max-w-6xl px-5 py-12 text-center">
           <p className="text-red-600 font-bold mb-4">Error: Precios no configurados</p>
           <p className="text-gray-600">Variable de entorno requerida: PRICE_ID</p>
         </div>
+        <PublicFooter companyName={companyName} />
       </main>
     );
   }
@@ -41,7 +48,7 @@ export default async function PricingPage() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-neutral-50">
       {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="mx-auto max-w-6xl px-5 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Menú Digital para tu Restaurante</h1>
           <p className="text-lg text-gray-600">Transforma tu menú en una experiencia digital</p>
@@ -98,13 +105,14 @@ export default async function PricingPage() {
           </div>
         </div>
       </div>
+      <PublicFooter companyName={companyName} />
     </main>
   );
   } catch (error) {
     console.error('Error fetching price from Stripe:', error);
     return (
       <main className="min-h-screen bg-gradient-to-b from-white to-neutral-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
+        <div className="mx-auto max-w-6xl px-5 py-12 text-center">
           <p className="text-red-600 font-bold mb-4">Error al cargar el precio</p>
           <p className="text-gray-600 mb-4">No se pudo recuperar el precio desde Stripe.</p>
           <p className="text-sm text-gray-500">
@@ -114,9 +122,22 @@ export default async function PricingPage() {
             {String(error)}
           </pre>
         </div>
+        <PublicFooter companyName={companyName} />
       </main>
     );
   }
+}
+
+function PublicFooter({ companyName }: { companyName: string }) {
+  return (
+    <footer className="mx-auto max-w-6xl px-5 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm text-gray-500">
+      <p>© {new Date().getFullYear()} {companyName}. Servicio de menú digital.</p>
+      <div className="flex gap-4">
+        <Link href="/pricing" className="hover:text-gray-950">Precios</Link>
+        <Link href="/sign-up" className="hover:text-gray-950">Crear cuenta</Link>
+      </div>
+    </footer>
+  );
 }
 
 
