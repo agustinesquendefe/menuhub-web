@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { X, Minus, Plus, AlertTriangle } from 'lucide-react';
 import { Size, Extra, Addition } from '@/lib/db/schema';
-import { ProductWithAssociations, useCart } from './cart-context';
+import { ProductWithAssociations, computeAmountWithFee, useCart } from './cart-context';
 import { useProviderFee } from './useProviderFee';
 
 interface AddToCartModalProps {
@@ -27,7 +27,6 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
 
   const currency = product.currency === 'MXN' ? '$' : (product.currency ?? '$') + ' ';
 
-  // Obtener el país del producto o del team (por compatibilidad)
   const teamCountry = (product as any).teamCountry;
   const { feePercent, feeFixed, isLoading } = useProviderFee(teamCountry);
 
@@ -37,9 +36,29 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
   const additionsPrice = selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
   let unitPrice = base + sizePrice + extrasPrice + additionsPrice;
   if ((feePercent > 0 || feeFixed > 0) && !isLoading) {
-    unitPrice = unitPrice + (unitPrice * feePercent / 100) + feeFixed;
+    unitPrice = computeAmountWithFee(unitPrice, feePercent, feeFixed);
   }
   const total = unitPrice * quantity;
+  const showsFee = (feePercent > 0 || feeFixed > 0) && unitPrice > 0;
+
+  function optionPriceWithFee(optionPrice: number) {
+    if (optionPrice <= 0) {
+      return 0;
+    }
+
+    if (isLoading || feePercent <= 0 && feeFixed <= 0) {
+      return optionPrice;
+    }
+
+    if (base <= 0) {
+      return computeAmountWithFee(optionPrice, feePercent, feeFixed);
+    }
+
+    return (
+      computeAmountWithFee(base + optionPrice, feePercent, feeFixed) -
+      computeAmountWithFee(base, feePercent, feeFixed)
+    );
+  }
 
   function toggleExtra(extra: Extra) {
     setSelectedExtras(prev =>
@@ -77,14 +96,14 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
             {product.allergenWarning && (
               <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium mt-1">
                 <AlertTriangle className="w-3 h-3" />
-                Contiene alérgenos
+                Contains allergens
               </span>
             )}
           </div>
           <button
             onClick={onClose}
             className="cursor-pointer p-1.5 rounded-full hover:bg-gray-100 shrink-0"
-            aria-label="Cerrar"
+            aria-label="Close"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -109,7 +128,7 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
           {/* Sizes */}
           {activeSizes.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-800 mb-2">Tamaño</p>
+              <p className="text-sm font-semibold text-gray-800 mb-2">Size</p>
               <div className="space-y-2">
                 {activeSizes.map(size => {
                   const checked = selectedSize?.id === size.id;
@@ -132,7 +151,7 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
                       </div>
                       {parseFloat(size.price ?? '0') > 0 && (
                         <span className="text-sm text-gray-500">
-                          +{currency}{parseFloat(size.price!).toFixed(2)}
+                          +{currency}{optionPriceWithFee(parseFloat(size.price!)).toFixed(2)}
                         </span>
                       )}
                     </label>
@@ -167,7 +186,7 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
                       </div>
                       {parseFloat(extra.price ?? '0') > 0 && (
                         <span className="text-sm text-gray-500">
-                          +{currency}{parseFloat(extra.price!).toFixed(2)}
+                          +{currency}{optionPriceWithFee(parseFloat(extra.price!)).toFixed(2)}
                         </span>
                       )}
                     </label>
@@ -180,7 +199,7 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
           {/* Additions */}
           {activeAdditions.length > 0 && (
             <div>
-              <p className="text-sm font-semibold text-gray-800 mb-2">Adiciones</p>
+              <p className="text-sm font-semibold text-gray-800 mb-2">Additions</p>
               <div className="space-y-2">
                 {activeAdditions.map(addition => {
                   const checked = selectedAdditions.some(a => a.id === addition.id);
@@ -202,7 +221,7 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
                       </div>
                       {parseFloat(addition.price ?? '0') > 0 && (
                         <span className="text-sm text-gray-500">
-                          +{currency}{parseFloat(addition.price!).toFixed(2)}
+                          +{currency}{optionPriceWithFee(parseFloat(addition.price!)).toFixed(2)}
                         </span>
                       )}
                     </label>
@@ -214,11 +233,11 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
 
           {/* Notes */}
           <div>
-            <p className="text-sm font-semibold text-gray-800 mb-2">Notas (opcional)</p>
+            <p className="text-sm font-semibold text-gray-800 mb-2">Notes (optional)</p>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Ej. sin cebolla, bien cocido..."
+              placeholder="e.g. no onions, well done..."
               className="w-full text-sm border rounded-xl px-3 py-2 resize-none h-20 focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
           </div>
@@ -249,13 +268,13 @@ export default function AddToCartModal({ product, onClose }: AddToCartModalProps
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-semibold py-3 rounded-xl flex items-center justify-between px-5 transition-all"
             disabled={isLoading}
           >
-            <span>Agregar al carrito</span>
+            <span>Add to cart</span>
             {isLoading ? (
-              <span className="font-bold text-gray-400 animate-pulse">Cargando...</span>
+              <span className="font-bold text-gray-400 animate-pulse">Loading...</span>
             ) : (
               <span>
                 {currency}{total.toFixed(2)}
-                {(feePercent > 0 || feeFixed > 0) && (
+                {showsFee && (
                   <span className="ml-1 text-xs text-orange-200 font-normal">incl. fee</span>
                 )}
               </span>

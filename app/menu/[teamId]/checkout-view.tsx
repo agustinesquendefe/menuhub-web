@@ -43,11 +43,6 @@ interface FormState {
   notes: string;
 }
 
-const ORDER_TYPES: { value: OrderType; label: string; description: string }[] = [
-  { value: 'mesa', label: 'En mesa', description: 'Te llevamos tu pedido a la mesa' },
-  { value: 'llevar', label: 'Para llevar', description: 'Recoge tu pedido en caja' },
-];
-
 function normalizeStateCode(state: string | null | undefined) {
   const normalized = state?.trim().toUpperCase();
   if (!normalized) return '';
@@ -75,14 +70,14 @@ function CheckoutForm(props: CheckoutViewProps) {
     (s, i) => s + computeLineTotalWithFee(i, providerFeePercent, providerFeeFixed),
     0
   );
-  const companyFeeAmount = (subtotal * taxPercent / 100) + taxFixed;
+  const companyFeeAmount = subtotal > 0 ? (subtotal * taxPercent / 100) + taxFixed : 0;
   const totalPrice = subtotal + companyFeeAmount;
 
   const [form, setForm] = useState<FormState>({
     name: '',
     email: '',
     phone: '',
-    orderType: 'mesa',
+    orderType: 'llevar',
     tableNumber: '',
     notes: '',
   });
@@ -100,11 +95,9 @@ function CheckoutForm(props: CheckoutViewProps) {
 
   function validate(): boolean {
     const next: typeof errors = {};
-    if (!form.name.trim()) next.name = 'El nombre completo es obligatorio';
-    if (!form.email.trim()) next.email = 'El email es obligatorio';
-    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) next.email = 'Ingresa un email válido';
-    if (form.orderType === 'mesa' && !form.tableNumber.trim())
-      next.tableNumber = 'Ingresa el número de mesa';
+    if (!form.name.trim()) next.name = 'Full name is required';
+    if (!form.email.trim()) next.email = 'Email is required';
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email)) next.email = 'Enter a valid email';
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -166,7 +159,7 @@ function CheckoutForm(props: CheckoutViewProps) {
       const data = await res.json();
 
       if (!res.ok || !data.clientSecret) {
-        setApiError(data.error ?? 'Error al procesar el pago. Intenta de nuevo.');
+        setApiError(data.error ?? 'Unable to process payment. Please try again.');
         setIsLoading(false);
         return;
       }
@@ -183,7 +176,7 @@ function CheckoutForm(props: CheckoutViewProps) {
       });
 
       if (stripeError) {
-        setCardError(stripeError.message ?? 'Error al confirmar el pago.');
+        setCardError(stripeError.message ?? 'Unable to confirm payment.');
         setIsLoading(false);
         return;
       }
@@ -212,7 +205,7 @@ function CheckoutForm(props: CheckoutViewProps) {
       clearCart();
       setSubmitted(true);
     } catch {
-      setApiError('Error de conexión. Revisa tu internet e intenta de nuevo.');
+      setApiError('Connection error. Check your internet and try again.');
       setIsLoading(false);
     }
   }
@@ -227,16 +220,16 @@ function CheckoutForm(props: CheckoutViewProps) {
             </svg>
           </div>
           <h2 className="text-2xl font-bold text-gray-900">
-            ¡Pago realizado!
+            Payment complete!
           </h2>
           <p className="text-gray-500 text-sm">
-            Tu pedido ha sido confirmado. Recibirás un email con el resumen.
+            Your order has been confirmed. You will receive an email with the summary.
           </p>
           <button
             onClick={onBack}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            Volver al menú
+            Back to menu
           </button>
         </div>
       </div>
@@ -250,14 +243,14 @@ function CheckoutForm(props: CheckoutViewProps) {
           <button
             onClick={onBack}
             className="cursor-pointer p-2 rounded-full hover:bg-gray-100 transition-colors -ml-1"
-            aria-label="Volver al menú"
+            aria-label="Back to menu"
             disabled={isLoading}
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>
             <h1 className="text-lg font-bold text-gray-900 leading-tight">
-              Finalizar pedido
+              Checkout
             </h1>
             <p className="text-xs text-gray-400">
               {teamName}
@@ -272,7 +265,7 @@ function CheckoutForm(props: CheckoutViewProps) {
         <section className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b flex items-center gap-2">
             <ShoppingBag className="w-4 h-4 text-orange-500" />
-            <h2 className="font-semibold text-gray-900">Resumen del pedido</h2>
+            <h2 className="font-semibold text-gray-900">Order summary</h2>
           </div>
           <div className="divide-y px-5">
             {items.map(item => {
@@ -305,18 +298,18 @@ function CheckoutForm(props: CheckoutViewProps) {
 
         {/* Customer info */}
         <section className="bg-white rounded-xl shadow-sm px-5 py-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Tus datos</h2>
+          <h2 className="font-semibold text-gray-900">Your details</h2>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="name">
-              Nombre completo <span className="text-red-500">*</span>
+              Full name <span className="text-red-500">*</span>
             </label>
             <input
               id="name"
               type="text"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="Tu nombre completo"
+              placeholder="Your full name"
               className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors ${
                 errors.name ? 'border-red-400 bg-red-50' : 'border-gray-200'
               }`}
@@ -333,7 +326,7 @@ function CheckoutForm(props: CheckoutViewProps) {
               type="email"
               value={form.email}
               onChange={e => set('email', e.target.value)}
-              placeholder="tu@email.com"
+              placeholder="your@email.com"
               className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors ${
                 errors.email ? 'border-red-400 bg-red-50' : 'border-gray-200'
               }`}
@@ -343,96 +336,32 @@ function CheckoutForm(props: CheckoutViewProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="phone">
-              Teléfono <span className="text-gray-400 text-xs font-normal">(opcional)</span>
+              Phone <span className="text-gray-400 text-xs font-normal">(optional)</span>
             </label>
             <input
               id="phone"
               type="tel"
               value={form.phone}
               onChange={e => set('phone', e.target.value)}
-              placeholder="Ej. 55 1234 5678"
+              placeholder="e.g. 55 1234 5678"
               className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
             />
           </div>
         </section>
 
-        {/* Order type */}
         <section className="bg-white rounded-xl shadow-sm px-5 py-5 space-y-3">
-          <h2 className="font-semibold text-gray-900">Tipo de pedido</h2>
-
-          <div className="space-y-2">
-            {ORDER_TYPES.map(type => {
-              const active = form.orderType === type.value;
-              return (
-                <label
-                  key={type.value}
-                  className={`flex items-center gap-3 p-3.5 border rounded-xl cursor-pointer transition-colors ${
-                    active ? 'border-orange-400 bg-orange-50' : 'hover:bg-gray-50 border-gray-200'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="orderType"
-                    value={type.value}
-                    checked={active}
-                    onChange={() => set('orderType', type.value)}
-                    className="accent-orange-500 cursor-pointer"
-                  />
-                  <div>
-                    <p className={`text-sm font-semibold ${active ? 'text-orange-700' : 'text-gray-800'}`}>
-                      {type.label}
-                    </p>
-                    <p className="text-xs text-gray-500">{type.description}</p>
-                  </div>
-                </label>
-              );
-            })}
+          <h2 className="font-semibold text-gray-900">Order type</h2>
+          <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+            <p className="text-sm font-semibold text-orange-700">Takeout</p>
+            <p className="text-xs text-orange-600">Pickup only. Collect your order at the counter.</p>
           </div>
-
-          {form.orderType === 'mesa' && (
-            <div className="pt-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="table">
-                Número de mesa <span className="text-red-500">*</span>
-              </label>
-              <input
-                id="table"
-                type="text"
-                value={form.tableNumber}
-                onChange={e => set('tableNumber', e.target.value)}
-                placeholder="Ej. 5"
-                className={`w-full border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition-colors ${
-                  errors.tableNumber ? 'border-red-400 bg-red-50' : 'border-gray-200'
-                }`}
-              />
-              {errors.tableNumber && (
-                <p className="text-xs text-red-500 mt-1">{errors.tableNumber}</p>
-              )}
-            </div>
-          )}
         </section>
-
-        {/* Notes — only for mesa */}
-        {form.orderType === 'mesa' && (
-          <section className="bg-white rounded-xl shadow-sm px-5 py-5 space-y-3">
-            <h2 className="font-semibold text-gray-900">
-              Notas del pedido{' '}
-              <span className="text-gray-400 text-xs font-normal">(opcional)</span>
-            </h2>
-            <textarea
-              value={form.notes}
-              onChange={e => set('notes', e.target.value)}
-              placeholder="Instrucciones especiales, alergias, preferencias..."
-              rows={3}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none"
-            />
-          </section>
-        )}
 
         {/* Card payment */}
         <section className="bg-white rounded-xl shadow-sm px-5 py-5 space-y-3">
           <div className="flex items-center gap-2">
             <CreditCard className="w-4 h-4 text-orange-500" />
-            <h2 className="font-semibold text-gray-900">Pago con tarjeta</h2>
+            <h2 className="font-semibold text-gray-900">Card payment</h2>
           </div>
           <div
             className={`border rounded-xl px-3 py-3 transition-colors ${
@@ -449,7 +378,7 @@ function CheckoutForm(props: CheckoutViewProps) {
           </div>
           {cardError && <p className="text-xs text-red-500">{cardError}</p>}
           <p className="text-xs text-gray-400">
-            🔒 Pago seguro procesado por Stripe. Nunca almacenamos tus datos de tarjeta.
+            Secure payment processed by Stripe. We never store your card details.
           </p>
         </section>
 
@@ -460,10 +389,9 @@ function CheckoutForm(props: CheckoutViewProps) {
         <div className="max-w-2xl mx-auto space-y-2">
           <div className="flex items-center justify-between px-1 mb-1">
             <span className="text-sm text-gray-500">
-              {items.length} {items.length === 1 ? 'producto' : 'productos'}
+              {items.length} {items.length === 1 ? 'item' : 'items'}
             </span>
           </div>
-          {/* Desglose en el footer */}
           <div className="flex items-center justify-between px-1 text-sm">
             <span className="text-gray-700">Subtotal</span>
             <span className="text-gray-900">{currency}{subtotal.toFixed(2)}</span>
@@ -484,12 +412,12 @@ function CheckoutForm(props: CheckoutViewProps) {
             {isLoading || isProviderFeeLoading || isTaxLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                {isProviderFeeLoading || isTaxLoading ? 'Calculando total...' : 'Procesando pago...'}
+                {isProviderFeeLoading || isTaxLoading ? 'Calculating total...' : 'Processing payment...'}
               </>
             ) : (
               <>
                 <CreditCard className="w-4 h-4" />
-                Pagar {currency}{totalPrice.toFixed(2)}
+                Pay {currency}{totalPrice.toFixed(2)}
               </>
             )}
           </button>

@@ -34,19 +34,19 @@ export default function PaymentProviderForm({ onSubmit, initialValues }: { onSub
     <form className="space-y-2" onSubmit={handleSubmit}>
       <div>
         <label className="block text-xs">
-            Proveedor
+            Provider
         </label>
         <input name="name" value={form.name} onChange={handleChange} className="border px-2 py-1 w-full" required />
       </div>
       <div>
         <label className="block text-xs">
-            País
+            Country
         </label>
         <input name="country" value={form.country} onChange={handleChange} className="border px-2 py-1 w-full" required />
       </div>
       <div>
         <label className="block text-xs">
-            Moneda
+            Currency
         </label>
         <input name="currency" value={form.currency} onChange={handleChange} className="border px-2 py-1 w-full" required />
       </div>
@@ -58,17 +58,17 @@ export default function PaymentProviderForm({ onSubmit, initialValues }: { onSub
       </div>
       <div>
         <label className="block text-xs">
-            Fee Fijo
+            Fixed Fee
         </label>
         <input name="feeFixed" value={form.feeFixed} onChange={handleChange} className="border px-2 py-1 w-full" required type="number" step="0.01" />
       </div>
       <div>
         <label className="inline-flex items-center gap-2">
-          <input type="checkbox" name="active" checked={form.active} onChange={handleChange} /> Activo
+          <input type="checkbox" name="active" checked={form.active} onChange={handleChange} /> Active
         </label>
       </div>
       <button type="submit" className="bg-gray-800 hover:bg-gray-950 cursor-pointer text-white px-4 py-1 rounded" disabled={loading}>
-        {loading ? "Guardando..." : "Guardar"}
+        {loading ? "Saving..." : "Save"}
       </button>
     </form>
   );

@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { db } from './drizzle';
 import { teams } from './schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { validatedActionWithUser } from '@/lib/auth/middleware';
 import { getUserWithTeam, getTeamByUsername } from './queries';
 import { updateStripeConnectAccount } from '@/lib/payments/stripe';
@@ -12,25 +12,58 @@ import { revalidatePath } from 'next/cache';
 const updateTeamUsernameSchema = z.object({
   username: z
     .string()
-    .min(3, 'El nombre de usuario debe tener al menos 3 caracteres')
-    .max(50, 'El nombre de usuario no puede superar los 50 caracteres')
+    .min(3, 'The username must be at least 3 characters long')
+    .max(50, 'The username cannot exceed 50 characters')
     .regex(
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'Solo letras minúsculas, números y guiones (sin guiones al inicio o final)'
+      'Only lowercase letters, numbers, and hyphens are allowed, without leading or trailing hyphens'
     ),
 });
+
+function buildUsernameCandidates(username: string) {
+  const base = username.slice(0, 42);
+  const year = new Date().getFullYear();
+
+  return Array.from(
+    new Set([
+      `${base}-menu`,
+      `${base}-restaurant`,
+      `${base}-grill`,
+      `${base}-${year}`,
+      `${base}-online`
+    ])
+  ).slice(0, 5);
+}
+
+async function getAvailableUsernameSuggestions(username: string) {
+  const candidates = buildUsernameCandidates(username);
+  const existing = await db
+    .select({ username: teams.username })
+    .from(teams)
+    .where(inArray(teams.username, candidates));
+  const taken = new Set(existing.map((row) => row.username).filter(Boolean));
+
+  return candidates.filter((candidate) => !taken.has(candidate)).slice(0, 3);
+}
 
 export const updateTeamUsername = validatedActionWithUser(
   updateTeamUsernameSchema,
   async (data, _formData, user) => {
     const userWithTeam = await getUserWithTeam(user.id);
     if (!userWithTeam?.teamId) {
-      return { error: 'No se encontró el equipo' };
+      return { error: 'Team not found' };
+    }
+
+    if (user.role !== 'owner') {
+      return { error: 'Only the owner can update the team' };
     }
 
     const existing = await getTeamByUsername(data.username);
     if (existing && existing.id !== userWithTeam.teamId) {
-      return { error: 'Ese nombre de usuario ya está en uso' };
+      return {
+        error: 'That username is not available.',
+        suggestions: await getAvailableUsernameSuggestions(data.username)
+      };
     }
 
     await db
@@ -40,14 +73,14 @@ export const updateTeamUsername = validatedActionWithUser(
 
     revalidatePath('/dashboard/general');
 
-    return { success: 'Nombre de usuario actualizado' };
+    return { success: 'Username updated' };
   }
 );
 
 
 const updateTeamContactSchema = z.object({
-  name: z.string().min(2, 'El nombre es obligatorio').max(100),
-  contactEmail: z.string().email('Email inválido').or(z.literal('')).optional(),
+  name: z.string().min(2, 'Name is required').max(100),
+  contactEmail: z.string().email('Invalid email').or(z.literal('')).optional(),
   contactPhone: z.string().max(50).optional(),
   line1: z.string().max(300).optional(),
   line2: z.string().max(300).optional(),
@@ -55,13 +88,13 @@ const updateTeamContactSchema = z.object({
   state: z.string().max(100).optional(),
   zipcode: z.string().max(20).optional(),
   country: z.string().max(100).optional(),
-  profilePictureUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
-  bannerUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  profilePictureUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
+  bannerUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
   description: z.string().max(500).optional(),
-  facebookUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
-  instagramUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
-  tiktokUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
-  youtubeUrl: z.string().url('URL inválida').or(z.literal('')).optional(),
+  facebookUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
+  instagramUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
+  tiktokUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
+  youtubeUrl: z.string().url('Invalid URL').or(z.literal('')).optional(),
   whatsappPhone: z.string().max(50).optional(),
   callPhone: z.string().max(50).optional(),
   openingHours: z.string().optional(),
@@ -72,10 +105,13 @@ export const updateTeamContact = validatedActionWithUser(
   async (data, _formData, user) => {
     const userWithTeam = await getUserWithTeam(user.id);
     if (!userWithTeam?.teamId) {
-      return { error: 'No se encontró el equipo' };
+      return { error: 'Team not found' };
     }
 
-    // Obtener datos actuales del equipo
+    if (user.role !== 'owner') {
+      return { error: 'Only the owner can update the team' };
+    }
+
     const [currentTeam] = await db.select().from(teams).where(eq(teams.id, userWithTeam.teamId));
 
     await db
@@ -104,7 +140,6 @@ export const updateTeamContact = validatedActionWithUser(
       })
       .where(eq(teams.id, userWithTeam.teamId));
 
-    // Si el equipo tiene Stripe Connect, y algún campo relevante cambió, actualiza en Stripe
     if (currentTeam?.stripeConnectAccountId) {
       const changed =
         data.name !== currentTeam.name ||
@@ -134,6 +169,6 @@ export const updateTeamContact = validatedActionWithUser(
 
     revalidatePath('/dashboard/general');
 
-    return { success: 'Información de contacto actualizada' };
+    return { success: 'Contact information updated' };
   }
 );

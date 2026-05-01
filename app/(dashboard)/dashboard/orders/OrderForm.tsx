@@ -49,13 +49,13 @@ export function OrderForm({ onCreated, teamId }: { onCreated?: () => void, teamI
       });
       const json = await res.json();
       if (!res.ok || json.error) {
-        setError(json.error || 'Error al crear la orden.');
+        setError(json.error || 'Error creating order.');
       } else {
         setForm({ products: '', subtotal: '', taxes: '', total: '', type: '', payment: '', status: '', price: '' });
         if (onCreated) onCreated();
       }
-    } catch (err) {
-      setError('Error al crear la orden.');
+    } catch {
+      setError('Error creating order.');
     }
     setLoading(false);
   };
@@ -66,11 +66,11 @@ export function OrderForm({ onCreated, teamId }: { onCreated?: () => void, teamI
       <input name="subtotal" value={form.subtotal} onChange={handleChange} placeholder="Subtotal" className="border p-1 w-full" required />
       <input name="taxes" value={form.taxes} onChange={handleChange} placeholder="Fees" className="border p-1 w-full" required />
       <input name="total" value={form.total} placeholder="Total" className="border p-1 w-full bg-gray-100" readOnly required />
-      <input name="type" value={form.type} onChange={handleChange} placeholder="Tipo" className="border p-1 w-full" required />
-      <input name="payment" value={form.payment} onChange={handleChange} placeholder="Pago" className="border p-1 w-full" required />
-      <input name="status" value={form.status} onChange={handleChange} placeholder="Estado" className="border p-1 w-full" required />
-      <input name="price" value={form.price} onChange={handleChange} placeholder="Precio (opcional)" className="border p-1 w-full" />
-      <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded" disabled={loading}>{loading ? 'Creando...' : 'Crear orden'}</button>
+      <input name="type" value={form.type} onChange={handleChange} placeholder="Type" className="border p-1 w-full" required />
+      <input name="payment" value={form.payment} onChange={handleChange} placeholder="Payment" className="border p-1 w-full" required />
+      <input name="status" value={form.status} onChange={handleChange} placeholder="Status" className="border p-1 w-full" required />
+      <input name="price" value={form.price} onChange={handleChange} placeholder="Price (optional)" className="border p-1 w-full" />
+      <button type="submit" className="bg-blue-600 text-white px-4 py-1 rounded" disabled={loading}>{loading ? 'Creating...' : 'Create order'}</button>
       {error && <div className="text-red-600 text-xs">{error}</div>}
     </form>
   );

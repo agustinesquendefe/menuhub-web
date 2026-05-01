@@ -4,26 +4,26 @@ import { getTeamById } from '@/lib/db/queries';
 export default async function OrdersPage({ params }: { params: { teamId: string } }) {
   const teamId = Number(params.teamId);
   const team = await getTeamById(teamId);
-  if (!team) return <div>Equipo no encontrado</div>;
+    if (!team) return <div>Team not found</div>;
   const orders = await getOrdersByTeam(teamId);
 
   return (
     <div>
          <h1>
-            Órdenes de {team.name}
+                        Orders for {team.name}
         </h1>
         <table className="min-w-full border mt-4">
             <thead>
                 <tr>
                     <th className="border px-2 py-1">ID</th>
-                    <th className="border px-2 py-1">Productos</th>
+                                        <th className="border px-2 py-1">Products</th>
                     <th className="border px-2 py-1">Subtotal</th>
-                    <th className="border px-2 py-1">Impuestos</th>
+                                        <th className="border px-2 py-1">Taxes</th>
                     <th className="border px-2 py-1">Total</th>
-                    <th className="border px-2 py-1">Tipo</th>
-                    <th className="border px-2 py-1">Pago</th>
-                    <th className="border px-2 py-1">Estado</th>
-                    <th className="border px-2 py-1">Fecha</th>
+                                        <th className="border px-2 py-1">Type</th>
+                                        <th className="border px-2 py-1">Payment</th>
+                                        <th className="border px-2 py-1">Status</th>
+                                        <th className="border px-2 py-1">Date</th>
                 </tr>
             </thead>
             <tbody>

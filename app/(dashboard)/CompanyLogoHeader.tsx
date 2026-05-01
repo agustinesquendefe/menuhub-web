@@ -17,7 +17,7 @@ export default function CompanyLogoHeader() {
   }
   return (
     <span className="ml-2 text-xl font-semibold text-gray-900">
-      {company?.name || 'Compañía'}
+      {company?.name || 'Company'}
     </span>
   );
 }

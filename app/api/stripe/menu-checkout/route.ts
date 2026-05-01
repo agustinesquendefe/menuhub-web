@@ -47,12 +47,12 @@ export async function POST(request: NextRequest) {
     } = body;
 
     if (!teamId || !lineItems?.length || !customerEmail || !customerName) {
-      return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+      return NextResponse.json({ error: 'Incomplete data' }, { status: 400 });
     }
 
     const team = await getTeamById(teamId);
     if (!team) {
-      return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
     const totalAmount = lineItems.reduce(
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[menu-checkout] Error creating PaymentIntent:', error);
     const message =
-      error instanceof Error ? error.message : 'Error al procesar el pago. Intenta de nuevo.';
+      error instanceof Error ? error.message : 'Error processing payment. Please try again.';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -30,12 +30,12 @@ export default function PaymentProvidersTable() {
       body: JSON.stringify(form),
     });
     if (res.ok) {
-      setMessage("Método de pago guardado correctamente.");
+            setMessage("Payment method saved successfully.");
       fetchProviders();
       setShowForm(false);
       return true;
     } else {
-      setMessage("Error al guardar el método de pago.");
+            setMessage("Error saving payment method.");
       return false;
     }
   }
@@ -43,29 +43,29 @@ export default function PaymentProvidersTable() {
   return (
     <section className="mb-10">
         <h2 className="text-xl font-semibold mb-2">
-            Métodos de Pago Configurados
+            Configured Payment Methods
         </h2>
         {message && <div className="mb-2 text-green-600">{message}</div>}
         <table className="min-w-full border text-sm mt-4">
             <thead>
             <tr>
                 <th className="border px-2 py-1">
-                    Proveedor
+                    Provider
                 </th>
                 <th className="border px-2 py-1">
-                    País
+                    Country
                 </th>
                 <th className="border px-2 py-1">
-                    Moneda
+                    Currency
                 </th>
                 <th className="border px-2 py-1">
                     Fee (%)
                 </th>
                 <th className="border px-2 py-1">
-                    Fee Fijo
+                    Fixed Fee
                 </th>
                 <th className="border px-2 py-1">
-                    Activo
+                    Active
                 </th>
             </tr>
             </thead>
@@ -73,13 +73,13 @@ export default function PaymentProvidersTable() {
             {loading ? (
                 <tr>
                     <td colSpan={6} className="text-center">
-                        Cargando...
+                        Loading...
                     </td>
                 </tr>
             ) : providers.length === 0 ? (
                 <tr>
                     <td colSpan={6} className="text-center">
-                        Sin métodos configurados
+                        No configured payment methods
                     </td>
                 </tr>
             ) : providers.map((p: any) => (
@@ -89,13 +89,13 @@ export default function PaymentProvidersTable() {
                 <td className="border px-2 py-1">{p.currency}</td>
                 <td className="border px-2 py-1">{p.feePercent}%</td>
                 <td className="border px-2 py-1">${p.feeFixed}</td>
-                <td className="border px-2 py-1">{p.active ? 'Sí' : 'No'}</td>
+                <td className="border px-2 py-1">{p.active ? 'Yes' : 'No'}</td>
                 </tr>
             ))}
             </tbody>
         </table>
         <p className="text-xs text-muted-foreground mt-2">
-            Ejemplo: Stripe para US cobra 2.9% + $0.30 por transacción. Mercado Pago para LATAM puede tener otros valores.
+            Example: Stripe for the US charges 2.9% + $0.30 per transaction. Mercado Pago for LATAM may use different values.
         </p>
         <div className="mt-6">
             {!showForm ? (
@@ -103,12 +103,12 @@ export default function PaymentProvidersTable() {
                 className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700 text-sm cursor-pointer"
                 onClick={() => setShowForm(true)}
             >
-                Agregar nuevo provider
+                Add new provider
             </button>
             ) : (
             <div className="border rounded p-4 mt-2 bg-gray-50">
                 <h3 className="font-semibold mb-2">
-                    Nuevo método de pago
+                    New payment method
                 </h3>
                 <PaymentProviderForm onSubmit={handleCreate} />
                 <button
@@ -116,7 +116,7 @@ export default function PaymentProvidersTable() {
                     onClick={() => setShowForm(false)}
                     type="button"
                 >
-                Cancelar
+                Cancel
                 </button>
             </div>
             )}

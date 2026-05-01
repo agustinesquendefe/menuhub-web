@@ -25,7 +25,7 @@ export default function EditCategoryForm({ category, onClose }: { category: Cate
     <form action={action} className="space-y-3">
       <input type="hidden" name="categoryId" value={category.id} />
       <div>
-        <Label htmlFor="edit-cat-name">Nombre</Label>
+        <Label htmlFor="edit-cat-name">Name</Label>
         <Input
           id="edit-cat-name"
           name="name"
@@ -35,7 +35,7 @@ export default function EditCategoryForm({ category, onClose }: { category: Cate
         />
       </div>
       <div>
-        <Label htmlFor="edit-cat-desc">Descripción</Label>
+        <Label htmlFor="edit-cat-desc">Description</Label>
         <Input
           id="edit-cat-desc"
           name="description"
@@ -46,7 +46,7 @@ export default function EditCategoryForm({ category, onClose }: { category: Cate
       {state?.error && <p className="text-red-500 text-sm">{state.error}</p>}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar'}
+          {pending ? 'Saving...' : 'Save'}
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onClose}>
           <X className="w-4 h-4" />

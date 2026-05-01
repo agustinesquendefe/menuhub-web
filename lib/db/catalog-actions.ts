@@ -36,7 +36,9 @@ const productAssocSchema = z.object({
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-async function requireTeam(userId: number) {
+async function requireTeam(userId: number, role: string) {
+  if (role !== 'owner') throw new Error('Only team owners can manage catalog items');
+
   const userWithTeam = await getUserWithTeam(userId);
   if (!userWithTeam?.teamId) throw new Error('User is not part of a team');
   return userWithTeam.teamId;
@@ -49,7 +51,7 @@ async function requireTeam(userId: number) {
 export const createSize = validatedActionWithUser(
   catalogItemSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { name, description, image, showPicture, price, currency } = data;
 
     const last = await db.select({ position: sizes.position }).from(sizes).where(eq(sizes.teamId, teamId as number)).orderBy(sizes.position);
@@ -69,7 +71,7 @@ export const createSize = validatedActionWithUser(
 export const updateSize = validatedActionWithUser(
   catalogItemUpdateSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { id, name, description, image, showPicture, price, currency, isActive } = data;
     await db.update(sizes).set({
       name, description: description || null, image: image || null,
@@ -84,7 +86,7 @@ export const updateSize = validatedActionWithUser(
 export const deleteSize = validatedActionWithUser(
   deleteSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     await db.delete(sizes).where(and(eq(sizes.id, data.id), eq(sizes.teamId, teamId as number)));
     revalidatePath('/dashboard/menu');
     return { success: 'Size deleted' };
@@ -98,7 +100,7 @@ export const deleteSize = validatedActionWithUser(
 export const createExtra = validatedActionWithUser(
   catalogItemSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { name, description, image, showPicture, price, currency } = data;
 
     const last = await db.select({ position: extras.position }).from(extras).where(eq(extras.teamId, teamId as number)).orderBy(extras.position);
@@ -118,7 +120,7 @@ export const createExtra = validatedActionWithUser(
 export const updateExtra = validatedActionWithUser(
   catalogItemUpdateSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { id, name, description, image, showPicture, price, currency, isActive } = data;
     await db.update(extras).set({
       name, description: description || null, image: image || null,
@@ -133,7 +135,7 @@ export const updateExtra = validatedActionWithUser(
 export const deleteExtra = validatedActionWithUser(
   deleteSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     await db.delete(extras).where(and(eq(extras.id, data.id), eq(extras.teamId, teamId as number)));
     revalidatePath('/dashboard/menu');
     return { success: 'Extra deleted' };
@@ -147,7 +149,7 @@ export const deleteExtra = validatedActionWithUser(
 export const createAddition = validatedActionWithUser(
   catalogItemSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { name, description, image, showPicture, price, currency } = data;
 
     const last = await db.select({ position: additions.position }).from(additions).where(eq(additions.teamId, teamId as number)).orderBy(additions.position);
@@ -167,7 +169,7 @@ export const createAddition = validatedActionWithUser(
 export const updateAddition = validatedActionWithUser(
   catalogItemUpdateSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { id, name, description, image, showPicture, price, currency, isActive } = data;
     await db.update(additions).set({
       name, description: description || null, image: image || null,
@@ -182,7 +184,7 @@ export const updateAddition = validatedActionWithUser(
 export const deleteAddition = validatedActionWithUser(
   deleteSchema,
   async (data, _, user) => {
-    const teamId = await requireTeam(user.id).catch(e => { throw e; });
+    const teamId = await requireTeam(user.id, user.role).catch(e => { throw e; });
     await db.delete(additions).where(and(eq(additions.id, data.id), eq(additions.teamId, teamId as number)));
     revalidatePath('/dashboard/menu');
     return { success: 'Addition deleted' };
@@ -196,7 +198,7 @@ export const deleteAddition = validatedActionWithUser(
 export const syncProductSizes = validatedActionWithUser(
   productAssocSchema,
   async (data, _, user) => {
-    await requireTeam(user.id).catch(e => { throw e; });
+    await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { productId, ids } = data;
     await db.delete(productSizes).where(eq(productSizes.productId, productId));
     if (ids.length > 0) {
@@ -210,7 +212,7 @@ export const syncProductSizes = validatedActionWithUser(
 export const syncProductExtras = validatedActionWithUser(
   productAssocSchema,
   async (data, _, user) => {
-    await requireTeam(user.id).catch(e => { throw e; });
+    await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { productId, ids } = data;
     await db.delete(productExtras).where(eq(productExtras.productId, productId));
     if (ids.length > 0) {
@@ -224,7 +226,7 @@ export const syncProductExtras = validatedActionWithUser(
 export const syncProductAdditions = validatedActionWithUser(
   productAssocSchema,
   async (data, _, user) => {
-    await requireTeam(user.id).catch(e => { throw e; });
+    await requireTeam(user.id, user.role).catch(e => { throw e; });
     const { productId, ids } = data;
     await db.delete(productAdditions).where(eq(productAdditions.productId, productId));
     if (ids.length > 0) {

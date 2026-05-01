@@ -1,10 +1,43 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getCategoriesWithProducts, getTeamById } from '@/lib/db/queries';
 import { getTeamPolicies } from '@/lib/db/policy-actions';
 import PublicMenu from './public-menu';
+import { getSecondaryTeamMenuMetadata } from '@/lib/seo';
 
 interface Props {
   params: Promise<{ teamId: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { teamId: rawId } = await params;
+  const teamId = parseInt(rawId, 10);
+
+  if (Number.isNaN(teamId)) {
+    return {
+      title: 'Menu not found',
+      description: 'The requested menu is not available.',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  const team = await getTeamById(teamId);
+
+  if (!team) {
+    return {
+      title: 'Menu not found',
+      description: 'The requested menu is not available.',
+      robots: {
+        index: false,
+        follow: false,
+      },
+    };
+  }
+
+  return getSecondaryTeamMenuMetadata(team);
 }
 
 export default async function PublicMenuPage({ params }: Props) {

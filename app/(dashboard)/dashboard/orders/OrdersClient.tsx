@@ -16,8 +16,8 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
 
   async function handleUpdate(newStatus: string) {
     if (
-      (newStatus === 'completada' || newStatus === 'cancelada') &&
-      !window.confirm(`¿Seguro que quieres marcar esta orden como ${newStatus} y enviar un email al cliente?`)
+      (newStatus === 'completed' || newStatus === 'cancelled') &&
+      !window.confirm(`Are you sure you want to mark this order as ${newStatus} and email the customer?`)
     ) {
       return;
     }
@@ -31,24 +31,24 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
         body: JSON.stringify({ id: order.id, status: newStatus }),
       });
       const json = await res.json();
-      if (!res.ok || json.error) setError(json.error || 'Error al actualizar');
+      if (!res.ok || json.error) setError(json.error || 'Error updating order');
       else {
         setStatus(newStatus);
         onUpdated();
         onClose();
       }
     } catch {
-      setError('Error al actualizar');
+      setError('Error updating order');
     }
     setLoading(false);
   }
 
   async function handleNotify() {
     if (pickupCount >= 2) {
-      setNotifyMsg('La notificación de recogida ya fue enviada 2 veces');
+      setNotifyMsg('Pickup notification has already been sent twice');
       return;
     }
-    if (!window.confirm('¿Seguro que quieres notificar al cliente que su pedido está listo para recoger?')) {
+    if (!window.confirm('Are you sure you want to notify the customer that their order is ready for pickup?')) {
       return;
     }
 
@@ -62,14 +62,14 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
       });
       const json = await res.json();
       if (!res.ok || json.error) {
-        setNotifyMsg(json.error || 'Error al notificar');
+        setNotifyMsg(json.error || 'Error sending notification');
         setNotifyLoading(false);
         return;
       }
       setPickupCount(json.order?.pickupNotificationCount ?? pickupCount + 1);
-      setNotifyMsg('Notificación enviada al cliente');
+      setNotifyMsg('Notification sent to customer');
     } catch {
-      setNotifyMsg('Error al notificar');
+      setNotifyMsg('Error sending notification');
     }
     setNotifyLoading(false);
   }
@@ -83,17 +83,17 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
   return (
     <SimpleModal open={open} onClose={onClose}>
       <div className="flex flex-col gap-4 min-w-[340px] max-w-[95vw]">
-        <h2 className="text-lg font-bold text-center mb-2">Orden #{order.orderCode || order.order_code || order.id}</h2>
+        <h2 className="text-lg font-bold text-center mb-2">Order #{order.orderCode || order.order_code || order.id}</h2>
         <div className="bg-gray-50 rounded p-4 border text-sm space-y-4">
-          <div><b>Cliente:</b> {order.customerName}</div>
+          <div><b>Customer:</b> {order.customerName}</div>
           <div><b>Email:</b> {order.customerEmail}</div>
-          <div><b>Teléfono:</b> {order.customerPhone}</div>
-          <div><b>Fecha:</b> {new Date(order.createdAt).toLocaleString()}</div>
-          <div className="mt-2 mb-1 font-semibold">Productos:</div>
+          <div><b>Phone:</b> {order.customerPhone}</div>
+          <div><b>Date:</b> {new Date(order.createdAt).toLocaleString()}</div>
+          <div className="mt-2 mb-1 font-semibold">Products:</div>
           <ul className="list-disc pl-4">
             {Array.isArray(productsArr) && productsArr.map((prod, idx) => {
               const qty = prod.quantity || prod.qty || 1;
-              const name = prod.name || prod.product?.name || 'Producto';
+              const name = prod.name || prod.product?.name || 'Product';
               let opts: string[] = [];
               if (prod.options) opts = opts.concat(prod.options);
               if (prod.selectedSize?.name) opts.push(prod.selectedSize.name);
@@ -106,18 +106,18 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
           <div className="mt-2"><b>Subtotal:</b> ${order.subtotal}</div>
           <div><b>Fees:</b> ${order.taxes}</div>
           <div><b>Total:</b> ${order.total}</div>
-          <div><b>Avisos de recogida enviados:</b> {pickupCount}/2</div>
-          <div><b>Estado actual:</b> <span className={
+          <div><b>Pickup notifications sent:</b> {pickupCount}/2</div>
+          <div><b>Current status:</b> <span className={
             `font-semibold ` +
-            (status === 'en proceso' ? 'text-yellow-600' : status === 'completada' ? 'text-green-600' : status === 'cancelada' ? 'text-red-600' : '')
+            (status === 'in progress' ? 'text-yellow-600' : status === 'completed' ? 'text-green-600' : status === 'cancelled' ? 'text-red-600' : '')
           }>{status}</span></div>
         </div>
         <div className="flex flex-wrap gap-2 justify-center">
-          {['en proceso', 'completada', 'cancelada'].map(s => {
+          {['in progress', 'completed', 'cancelled'].map(s => {
             let color = '';
-            if (s === 'en proceso') color = 'yellow';
-            else if (s === 'completada') color = 'green';
-            else if (s === 'cancelada') color = 'red';
+            if (s === 'in progress') color = 'yellow';
+            else if (s === 'completed') color = 'green';
+            else if (s === 'cancelled') color = 'red';
             // Tailwind no soporta clases dinámicas para colores, así que usamos un objeto para clases
             const colorMap = {
               yellow: {
@@ -154,7 +154,7 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
           onClick={handleNotify}
           disabled={notifyLoading || pickupCount >= 2}
         >
-          {notifyLoading ? 'Enviando notificación...' : 'Notificar listo para recoger'}
+          {notifyLoading ? 'Sending notification...' : 'Notify ready for pickup'}
         </button>
         {notifyMsg && <div className="text-center text-xs text-green-700 mt-1">{notifyMsg}</div>}
         {error && <div className="text-red-600 text-xs text-center">{error}</div>}
@@ -163,24 +163,24 @@ function EditStatusModal({ open, onClose, order, onUpdated }: { open: boolean, o
   );
 }
 
-export default function OrdersClient({ orders, team }: { orders: any[], team: any }) {
+export default function OrdersClient({ orders, team, userRole }: { orders: any[], team: any, userRole: string }) {
   const [editId, setEditId] = useState<number|null>(null);
   const todayStr = new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
 
-  // Filtrar por fecha (solo las del día seleccionado)
+  // Filter by date.
   const filteredByDate = orders.filter(order => {
     const orderDate = new Date(order.createdAt).toISOString().slice(0, 10);
     return orderDate === selectedDate;
   });
 
-  // Filtrar por status si se selecciona
+  // Filter by status.
   const filteredOrders = selectedStatus
     ? filteredByDate.filter(order => order.status === selectedStatus)
     : filteredByDate;
 
-  // Ordenar por fecha ascendente (más antiguas primero)
+  // Sort oldest first.
   const sortedOrders = [...filteredOrders].sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();
     const dateB = new Date(b.createdAt).getTime();
@@ -190,9 +190,9 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
   return (
     <div className="max-w-5xl mx-auto py-10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Órdenes de {team.name}</h1>
+        <h1 className="text-2xl font-bold">Orders for {team.name}</h1>
         <div className="flex flex-wrap gap-2 items-center">
-          <label className="text-sm font-medium mr-1">Fecha:</label>
+          <label className="text-sm font-medium mr-1">Date:</label>
           <input
             type="date"
             className="border rounded px-2 py-1 text-sm"
@@ -200,16 +200,16 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
             onChange={e => setSelectedDate(e.target.value)}
             max={todayStr}
           />
-          <label className="text-sm font-medium ml-4 mr-1">Estado:</label>
+          <label className="text-sm font-medium ml-4 mr-1">Status:</label>
           <select
             className="border rounded px-2 py-1 text-sm"
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value)}
           >
-            <option value="">Todos</option>
-            <option value="en proceso">En proceso</option>
-            <option value="completada">Completada</option>
-            <option value="cancelada">Cancelada</option>
+            <option value="">All</option>
+            <option value="in progress">In progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
           </select>
         </div>
       </div>
@@ -218,13 +218,13 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
         <div className="mt-4 rounded-md border border-dashed border-gray-300 bg-gray-50 px-6 py-10 text-center">
           <p className="font-medium text-gray-900">
             {orders.length === 0
-              ? 'No hay órdenes todavía'
-              : 'No hay órdenes para los filtros seleccionados'}
+              ? 'No orders yet'
+              : 'No orders match the selected filters'}
           </p>
           <p className="mt-2 text-sm text-gray-600">
             {orders.length === 0
-              ? 'Cuando tus clientes hagan pedidos, aparecerán aquí.'
-              : 'Cambia la fecha o el estado para revisar otras órdenes.'}
+              ? 'Customer orders will appear here.'
+              : 'Change the date or status to review other orders.'}
           </p>
         </div>
       ) : (
@@ -232,19 +232,19 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
         <thead>
           <tr>
             <th className="border px-2 py-1 whitespace-nowrap">ID</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Código</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Nombre</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Code</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Name</th>
             <th className="border px-2 py-1 whitespace-nowrap">Email</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Teléfono</th>
-            <th className="border px-2 py-1">Productos</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Phone</th>
+            <th className="border px-2 py-1">Products</th>
             <th className="border px-2 py-1 whitespace-nowrap">Subtotal</th>
             <th className="border px-2 py-1 whitespace-nowrap">Fees</th>
             <th className="border px-2 py-1 whitespace-nowrap">Total</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Tipo</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Pago</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Estado</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Fecha</th>
-            <th className="border px-2 py-1 whitespace-nowrap">Acciones</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Type</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Payment</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Status</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Date</th>
+            <th className="border px-2 py-1 whitespace-nowrap">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -261,15 +261,15 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
                   try {
                     productsArr = typeof order.products === 'string' ? JSON.parse(order.products) : order.products;
                   } catch {
-                    return <span className="text-red-600">Error productos</span>;
+                    return <span className="text-red-600">Product error</span>;
                   }
-                  if (!Array.isArray(productsArr)) return <span className="text-gray-400">Sin productos</span>;
+                  if (!Array.isArray(productsArr)) return <span className="text-gray-400">No products</span>;
                   return (
                     <ul className="list-disc pl-4">
                       {productsArr.map((prod, idx) => {
                         // Compatibilidad flexible: nombre, cantidad, opciones
                         const qty = prod.quantity || prod.qty || 1;
-                        const name = prod.name || prod.product?.name || 'Producto';
+                        const name = prod.name || prod.product?.name || 'Product';
                         // Opciones: extras, size, additions, etc.
                         let opts: string[] = [];
                         if (prod.options) opts = opts.concat(prod.options);
@@ -298,21 +298,23 @@ export default function OrdersClient({ orders, team }: { orders: any[], team: an
                         className="text-blue-600 text-xs underline mr-2 cursor-pointer"
                         onClick={() => setEditId(order.id)}
                     >
-                        Actualizar estado
+                        Update status
                     </button>
-                    <button
-                        className="text-red-600 text-xs underline cursor-pointer"
-                        onClick={async () => {
-                        await fetch('/api/orders', {
-                            method: 'DELETE',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ id: order.id }),
-                        });
-                        window.location.reload();
-                        }}
-                    >
-                        Eliminar
-                    </button>
+                    {userRole !== 'manager' && (
+                      <button
+                          className="text-red-600 text-xs underline cursor-pointer"
+                          onClick={async () => {
+                          await fetch('/api/orders', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: order.id }),
+                          });
+                          window.location.reload();
+                          }}
+                      >
+                          Delete
+                      </button>
+                    )}
 
                     <EditStatusModal
                         open={editId === order.id}

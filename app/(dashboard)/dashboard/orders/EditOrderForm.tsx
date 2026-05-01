@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 export function EditOrderForm({ order, onUpdated, onCancel }: { order: any, onUpdated?: () => void, onCancel?: () => void }) {
-  
+
     const [form, setForm] = useState({
       products: typeof order.products === 'string' ? order.products : JSON.stringify(order.products),
       subtotal: order.subtotal?.toString() ?? '',
@@ -35,7 +35,6 @@ export function EditOrderForm({ order, onUpdated, onCancel }: { order: any, onUp
     setError(null);
     try {
       const products = JSON.parse(form.products);
-      
 
       await fetch('/api/orders', {
         method: 'PATCH',
@@ -55,8 +54,8 @@ export function EditOrderForm({ order, onUpdated, onCancel }: { order: any, onUp
 
       if (onUpdated) onUpdated();
 
-    } catch (err) {
-      setError('Error al actualizar la orden.');
+    } catch {
+      setError('Error updating order.');
     }
     setLoading(false);
   };
@@ -72,8 +71,8 @@ export function EditOrderForm({ order, onUpdated, onCancel }: { order: any, onUp
       <input name="status" value={form.status} onChange={handleChange} className="border p-1 w-full" required />
       <input name="price" value={form.price} onChange={handleChange} className="border p-1 w-full" />
       <div className="flex gap-2">
-        <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded" disabled={loading}>{loading ? 'Guardando...' : 'Guardar'}</button>
-        <button type="button" className="bg-gray-300 px-4 py-1 rounded" onClick={onCancel}>Cancelar</button>
+        <button type="submit" className="bg-green-600 text-white px-4 py-1 rounded" disabled={loading}>{loading ? 'Saving...' : 'Save'}</button>
+        <button type="button" className="bg-gray-300 px-4 py-1 rounded" onClick={onCancel}>Cancel</button>
       </div>
       {error && <div className="text-red-600 text-xs">{error}</div>}
     </form>

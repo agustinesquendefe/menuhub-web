@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOrderById, updateOrder } from '@/lib/db/order-actions';
-import { getTeamById } from '@/lib/db/queries';
+import { getTeamById, getUser, getUserWithTeam } from '@/lib/db/queries';
 import { sendPickupReadyEmail } from '@/lib/email/resend';
 
 export async function POST(req: NextRequest) {
@@ -8,22 +8,36 @@ export async function POST(req: NextRequest) {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'Missing order id' }, { status: 400 });
 
+    const user = await getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!['owner', 'manager', 'superadmin'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const order = await getOrderById(Number(id));
-    if (!order) return NextResponse.json({ error: 'Orden no encontrada' }, { status: 404 });
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+
+    if (user.role !== 'superadmin') {
+      const userWithTeam = await getUserWithTeam(user.id);
+      if (!userWithTeam?.teamId || userWithTeam.teamId !== order.teamId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     if (!order.customerEmail) {
-      return NextResponse.json({ error: 'La orden no tiene email de cliente' }, { status: 400 });
+      return NextResponse.json({ error: 'The order does not have a customer email' }, { status: 400 });
     }
 
     const sentCount = order.pickupNotificationCount ?? 0;
     if (sentCount >= 2) {
       return NextResponse.json(
-        { error: 'La notificación de recogida ya fue enviada 2 veces' },
+        { error: 'The pickup notification was already sent 2 times' },
         { status: 400 }
       );
     }
 
     const team = await getTeamById(order.teamId);
-    if (!team) return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+    if (!team) return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
 
     await sendPickupReadyEmail({
       to: order.customerEmail,

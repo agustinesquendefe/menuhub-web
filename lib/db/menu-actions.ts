@@ -23,6 +23,10 @@ export const createCategory = validatedActionWithUser(
       return { error: 'User is not part of a team' };
     }
 
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
+    }
+
     // Get the highest position
     const lastCategory = await db
       .select({ position: categories.position })
@@ -59,7 +63,7 @@ const createProductSchema = z.object({
   categoryId: z.coerce.number(),
   name: z.string().min(1, 'Product name is required').max(100),
   description: z.string().optional(),
-  price: z.string().transform(v => parseFloat(v)).pipe(z.number().positive('Price must be positive')),
+  price: z.string().transform(v => parseFloat(v) || 0).pipe(z.number().min(0, 'Price cannot be negative')),
   currency: z.string().default('MXN'),
   image: z.string().optional(),
   showPicture: z.coerce.boolean().optional(),
@@ -75,6 +79,10 @@ export const createProduct = validatedActionWithUser(
 
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
+    }
+
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
     }
 
     // Verificar que la categoría pertenezca al equipo del usuario
@@ -159,6 +167,10 @@ export const updateCategory = validatedActionWithUser(
       return { error: 'User is not part of a team' };
     }
 
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
+    }
+
     const category = await db
       .select()
       .from(categories)
@@ -197,7 +209,7 @@ const updateProductSchema = z.object({
   productId: z.coerce.number(),
   name: z.string().min(1, 'Product name is required').max(100),
   description: z.string().optional(),
-  price: z.string().transform(v => parseFloat(v)).pipe(z.number().positive('Price must be positive')),
+  price: z.string().transform(v => parseFloat(v) || 0).pipe(z.number().min(0, 'Price cannot be negative')),
   image: z.string().optional(),
   showPicture: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
   isActive: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
@@ -215,6 +227,10 @@ export const updateProduct = validatedActionWithUser(
 
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
+    }
+
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
     }
 
     const product = await db
@@ -283,6 +299,10 @@ export const deleteCategory = validatedActionWithUser(
       return { error: 'User is not part of a team' };
     }
 
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
+    }
+
     const category = await db
       .select()
       .from(categories)
@@ -320,6 +340,10 @@ export const deleteProduct = validatedActionWithUser(
 
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
+    }
+
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can manage the menu' };
     }
 
     const product = await db

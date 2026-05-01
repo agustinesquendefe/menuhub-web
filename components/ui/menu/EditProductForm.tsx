@@ -131,7 +131,7 @@ export default function EditProductForm({
       const fileName = `${teamId}/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('team-images').upload(fileName, imageFile);
       if (uploadError) {
-        setError('Error subiendo imagen: ' + uploadError.message);
+        setError('Error uploading image: ' + uploadError.message);
         setSubmitting(false);
         return;
       }
@@ -160,8 +160,8 @@ export default function EditProductForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3 bg-white p-3 rounded-lg border border-dashed">
       <div className="flex justify-between items-center">
-        <h4 className="font-medium">Editar Producto</h4>
-        <Button type="button" variant="outline" size="sm" onClick={() => setIsActive(v => !v)} className="cursor-pointer" title={isActive ? 'Ocultar producto' : 'Mostrar producto'}>
+        <h4 className="font-medium">Edit Product</h4>
+        <Button type="button" variant="outline" size="sm" onClick={() => setIsActive(v => !v)} className="cursor-pointer" title={isActive ? 'Hide product' : 'Show product'}>
           {isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4 text-gray-400" />}
         </Button>
       </div>
@@ -169,11 +169,11 @@ export default function EditProductForm({
       <input type="hidden" name="categoryId" value={categoryId} />
       <div className="grid grid-cols-2 gap-5">
         <div>
-          <Label htmlFor={`edit-prod-name-${product.id}`} className="text-sm">Nombre</Label>
+          <Label htmlFor={`edit-prod-name-${product.id}`} className="text-sm">Name</Label>
           <Input id={`edit-prod-name-${product.id}`} name="name" defaultValue={product.name} required className="mt-1 text-sm" />
         </div>
         <div>
-          <Label htmlFor={`edit-prod-price-${product.id}`} className="text-sm">Precio</Label>
+          <Label htmlFor={`edit-prod-price-${product.id}`} className="text-sm">Price</Label>
           <Input
             id={`edit-prod-price-${product.id}`}
             name="price"
@@ -188,57 +188,56 @@ export default function EditProductForm({
         </div>
       </div>
       <div>
-        <Label htmlFor={`edit-prod-desc-${product.id}`} className="text-sm my-5">Descripción (opcional)</Label>
+        <Label htmlFor={`edit-prod-desc-${product.id}`} className="text-sm my-5">Description (optional)</Label>
         <Input
           id={`edit-prod-desc-${product.id}`}
           name="description"
-          placeholder="Descripción del producto"
+          placeholder="Product description"
           className="mt-1 text-sm"
           defaultValue={product.description || ''}
         />
       </div>
       <div>
-        <Label htmlFor={`edit-prod-image-${product.id}`} className="text-sm my-5">Imagen</Label>
+        <Label htmlFor={`edit-prod-image-${product.id}`} className="text-sm my-5">Image</Label>
         {product.image && (
           <div className="mt-1 mb-2 flex items-center gap-3">
             <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded border" />
-            <span className="text-xs text-gray-500">Imagen actual. Selecciona un archivo para reemplazarla.</span>
+            <span className="text-xs text-gray-500">Current image. Select a file to replace it.</span>
           </div>
         )}
         <Input id={`edit-prod-image-${product.id}`} name="image" type="file" accept="image/*" className="mt-1 text-sm cursor-pointer" />
       </div>
       <div className="flex items-center gap-2">
         <input id={`edit-prod-showPicture-${product.id}`} name="showPicture" type="checkbox" className="accent-black cursor-pointer" defaultChecked={product.showPicture} />
-        <Label htmlFor={`edit-prod-showPicture-${product.id}`}>Mostrar imagen en el menú</Label>
+        <Label htmlFor={`edit-prod-showPicture-${product.id}`}>Show image on menu</Label>
       </div>
       <div className="flex items-center gap-2">
         <input id={`edit-prod-allergen-${product.id}`} name="allergenWarning" type="checkbox" className="accent-orange-500 cursor-pointer" defaultChecked={product.allergenWarning} />
-        <Label htmlFor={`edit-prod-allergen-${product.id}`} className="text-orange-700">Aplica aviso de alérgenos</Label>
+        <Label htmlFor={`edit-prod-allergen-${product.id}`} className="text-orange-700">Apply allergen warning</Label>
       </div>
 
-      {/* Sizes / Extras / Additions */}
       <div className="space-y-2 pt-1">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Opciones del producto</p>
+        <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Product options</p>
         <AssociationCheckboxGroup
-          label="Tamaños"
+          label="Sizes"
           items={catalog.sizes}
           selectedIds={selectedSizeIds}
           onChange={setSelectedSizeIds}
-          emptyMessage="No hay tamaños en el catálogo. Agrégalos en la pestaña Catálogo."
+          emptyMessage="There are no sizes in the catalog. Add them in the Catalog tab."
         />
         <AssociationCheckboxGroup
           label="Extras"
           items={catalog.extras}
           selectedIds={selectedExtraIds}
           onChange={setSelectedExtraIds}
-          emptyMessage="No hay extras en el catálogo. Agrégalos en la pestaña Catálogo."
+          emptyMessage="There are no extras in the catalog. Add them in the Catalog tab."
         />
         <AssociationCheckboxGroup
-          label="Adiciones"
+          label="Add-ons"
           items={catalog.additions}
           selectedIds={selectedAdditionIds}
           onChange={setSelectedAdditionIds}
-          emptyMessage="No hay adiciones en el catálogo. Agrégalos en la pestaña Catálogo."
+          emptyMessage="There are no add-ons in the catalog. Add them in the Catalog tab."
         />
       </div>
 
@@ -246,11 +245,11 @@ export default function EditProductForm({
       <div className="flex flex-col gap-2">
         <Button type="submit" size="sm" disabled={pending || submitting} className="w-full cursor-pointer">
           <Edit2 className="w-4 h-4 mr-2" />
-          {(pending || submitting) ? 'Guardando...' : 'Guardar Cambios'}
+          {(pending || submitting) ? 'Saving...' : 'Save Changes'}
         </Button>
         <Button type="button" variant="outline" size="sm" onClick={onClose} className="w-full cursor-pointer hover:bg-black hover:text-white">
           <X className="w-4 h-4 mr-2" />
-          Cancelar
+          Cancel
         </Button>
       </div>
     </form>

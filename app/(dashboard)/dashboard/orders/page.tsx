@@ -9,8 +9,8 @@ export default async function OrdersPage() {
   const userWithTeam = await getUserWithTeam(user.id);
   if (!userWithTeam?.teamId) redirect('/dashboard');
   const team = await getTeamById(userWithTeam.teamId);
-  if (!team) return <div>Equipo no encontrado</div>;
+  if (!team) return <div>Team not found</div>;
   const orders = await getOrdersByTeam(team.id);
 
-  return <OrdersClient orders={orders} team={team} />;
+  return <OrdersClient orders={orders} team={team} userRole={user.role} />;
 }

@@ -5,8 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Lock, Trash2, Loader2 } from 'lucide-react';
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { updatePassword, deleteAccount } from '@/app/(login)/actions';
+import { User } from '@/lib/db/schema';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 type PasswordState = {
   currentPassword?: string;
@@ -23,6 +28,8 @@ type DeleteState = {
 };
 
 export default function SecurityPage() {
+  const router = useRouter();
+  const { data: user } = useSWR<User>('/api/user', fetcher);
   const [passwordState, passwordAction, isPasswordPending] = useActionState<
     PasswordState,
     FormData
@@ -32,6 +39,12 @@ export default function SecurityPage() {
     DeleteState,
     FormData
   >(deleteAccount, {});
+
+  useEffect(() => {
+    if (user?.role === 'manager') {
+      router.replace('/dashboard/orders');
+    }
+  }, [router, user?.role]);
 
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -115,7 +128,7 @@ export default function SecurityPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle>Delete Account</CardTitle>
         </CardHeader>
@@ -161,7 +174,7 @@ export default function SecurityPage() {
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </Card> */}
     </section>
   );
 }

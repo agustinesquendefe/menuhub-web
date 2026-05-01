@@ -11,27 +11,24 @@ export async function POST(request: NextRequest) {
       body;
 
     if (!paymentIntentId || !teamId || !customerName) {
-      return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+      return NextResponse.json({ error: 'Incomplete data' }, { status: 400 });
     }
 
-    // Verify the PaymentIntent actually succeeded with Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
     if (paymentIntent.status !== 'succeeded') {
-      return NextResponse.json({ error: 'El pago no fue completado' }, { status: 400 });
+      return NextResponse.json({ error: 'Payment was not completed' }, { status: 400 });
     }
 
-    // Use email from body first, fall back to receipt_email on PaymentIntent
     const customerEmail = emailFromBody || paymentIntent.receipt_email;
     if (!customerEmail) {
-      return NextResponse.json({ error: 'Email del cliente no encontrado' }, { status: 400 });
+      return NextResponse.json({ error: 'Customer email not found' }, { status: 400 });
     }
 
     const team = await getTeamById(Number(teamId));
     if (!team) {
-      return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    // Build items from PaymentIntent metadata
     const itemsJson = paymentIntent.metadata?.itemsJson ?? '';
     const totalAmount = paymentIntent.amount;
     const currency = paymentIntent.currency;
@@ -49,7 +46,6 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // Crear la orden en la base de datos
     try {
       await createOrderPublic({
         teamId: Number(teamId),
@@ -66,7 +62,7 @@ export async function POST(request: NextRequest) {
         customerPhone,
       });
     } catch (err) {
-      console.error('[order-confirmation] Error creando orden en DB:', err);
+      console.error('[order-confirmation] Error creating order in DB:', err);
     }
 
     await sendOrderConfirmation({

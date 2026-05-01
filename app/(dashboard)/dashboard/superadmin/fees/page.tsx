@@ -20,16 +20,15 @@ export default async function FeesPage({ searchParams }: FeesPageProps) {
   if (searchParams?.id) {
     companyId = Number(searchParams.id);
   } else {
-    // Obtener la primera compañía
     const result = await db.select().from(company).limit(1);
     if (result[0]) companyId = result[0].id;
   }
 
   return (
     <div className="max-w-5xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Administración de Fees</h1>
+      <h1 className="text-2xl font-bold mb-6">Fee Management</h1>
       {companyId && <CompanyFeesManager companyId={companyId} />}
-      {!companyId && <div className="text-red-600">No hay compañía registrada.</div>}
+      {!companyId && <div className="text-red-600">No company registered.</div>}
     </div>
   );
 }

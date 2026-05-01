@@ -26,6 +26,11 @@ export const upsertTeamPolicies = validatedActionWithUser(
     if (!userWithTeam?.teamId) {
       return { error: 'User is not part of a team' };
     }
+
+    if (user.role !== 'owner') {
+      return { error: 'Only team owners can update policies' };
+    }
+
     const teamId = userWithTeam.teamId;
 
     const values: NewTeamPolicy = {
@@ -51,7 +56,7 @@ export const upsertTeamPolicies = validatedActionWithUser(
       });
 
     revalidatePath('/dashboard/policies');
-    return { success: 'Políticas guardadas correctamente' };
+    return { success: 'Policies saved successfully' };
   }
 );
 

@@ -39,7 +39,6 @@ export default function CompanyForm() {
     setSaving(true);
     setSuccess(false);
 
-    // Si hay un archivo de logo nuevo, súbelo
     const file = fileInputRef.current?.files?.[0];
     let logoUrl = company.logoUrl;
     if (file) {
@@ -59,14 +58,13 @@ export default function CompanyForm() {
     if (logoUrl) setCompany((c: any) => ({ ...c, logoUrl }));
   }
 
-  if (loading) return <div>Cargando...</div>;
+  if (loading) return <div>Loading...</div>;
 
-  // company?.id puede ser undefined hasta que cargue
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded shadow">
         <div>
-          <label className="block text-sm font-medium mb-1">Nombre</label>
+          <label className="block text-sm font-medium mb-1">Name</label>
           <Input name="name" value={company?.name || ""} onChange={handleChange} required />
         </div>
         <div>
@@ -85,39 +83,39 @@ export default function CompanyForm() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Descripción</label>
+          <label className="block text-sm font-medium mb-1">Description</label>
           <textarea name="description" value={company?.description || ""} onChange={handleChange} className="w-full border rounded p-2 min-h-[80px]" />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Email de contacto</label>
+          <label className="block text-sm font-medium mb-1">Contact email</label>
           <Input name="contactEmail" value={company?.contactEmail || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Teléfono de contacto</label>
+          <label className="block text-sm font-medium mb-1">Contact phone</label>
           <Input name="contactPhone" value={company?.contactPhone || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Dirección línea 1</label>
+          <label className="block text-sm font-medium mb-1">Address line 1</label>
           <Input name="line1" value={company?.line1 || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Dirección línea 2</label>
+          <label className="block text-sm font-medium mb-1">Address line 2</label>
           <Input name="line2" value={company?.line2 || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Ciudad</label>
+          <label className="block text-sm font-medium mb-1">City</label>
           <Input name="city" value={company?.city || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Estado/Provincia</label>
+          <label className="block text-sm font-medium mb-1">State/Province</label>
           <Input name="state" value={company?.state || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Código postal</label>
+          <label className="block text-sm font-medium mb-1">Postal code</label>
           <Input name="zipcode" value={company?.zipcode || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">País</label>
+          <label className="block text-sm font-medium mb-1">Country</label>
           <Input name="country" value={company?.country || ""} onChange={handleChange} />
         </div>
         <div>
@@ -141,11 +139,11 @@ export default function CompanyForm() {
           <Input name="whatsappPhone" value={company?.whatsappPhone || ""} onChange={handleChange} />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Teléfono de llamadas</label>
+          <label className="block text-sm font-medium mb-1">Phone for calls</label>
           <Input name="callPhone" value={company?.callPhone || ""} onChange={handleChange} />
         </div>
-        <Button type="submit" disabled={saving} className="cursor-pointer">{saving ? "Guardando..." : "Guardar cambios"}</Button>
-        {success && <div className="text-green-600 text-sm">¡Cambios guardados!</div>}
+        <Button type="submit" disabled={saving} className="cursor-pointer">{saving ? "Saving..." : "Save changes"}</Button>
+        {success && <div className="text-green-600 text-sm">Changes saved.</div>}
       </form>
     </>
   );

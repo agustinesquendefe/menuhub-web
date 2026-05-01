@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { updateOrder, deleteOrder, createOrderPublic } from '@/lib/db/order-actions';
-import { getTeamById } from '@/lib/db/queries';
+import { updateOrder, deleteOrder, createOrderPublic, getOrderById } from '@/lib/db/order-actions';
+import { getTeamById, getUser, getUserWithTeam } from '@/lib/db/queries';
 import { sendOrderStatusEmail } from '@/lib/email/resend';
 export async function POST(req: NextRequest) {
   try {
     const data = await req.json();
     console.log('POST /api/orders data:', data);
-    // Validación mínima, puedes mejorarla
     if (!data.products || !data.subtotal || !data.taxes || !data.total || !data.type || !data.payment || !data.status) {
-      console.error('Faltan campos obligatorios', data);
-      return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
+      console.error('Missing required fields', data);
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    // products debe ser array, el resto string/number
     try {
       const created = await createOrderPublic({
         products: JSON.stringify(data.products),
@@ -30,12 +28,12 @@ export async function POST(req: NextRequest) {
       console.log('Order created:', created);
       return NextResponse.json({ success: true, order: created });
     } catch (err) {
-      console.error('Error al crear la orden en DB:', err);
-      return NextResponse.json({ error: 'Error creando orden en DB', details: String(err) }, { status: 500 });
+      console.error('Error creating order in DB:', err);
+      return NextResponse.json({ error: 'Error creating order in DB', details: String(err) }, { status: 500 });
     }
   } catch (e) {
-    console.error('Error general en POST /api/orders:', e);
-    return NextResponse.json({ error: 'Error creando orden', details: String(e) }, { status: 500 });
+    console.error('General error in POST /api/orders:', e);
+    return NextResponse.json({ error: 'Error creating order', details: String(e) }, { status: 500 });
   }
 }
 
@@ -43,6 +41,30 @@ export async function PATCH(req: NextRequest) {
   try {
     const { id, ...data } = await req.json();
     if (!id) return NextResponse.json({ error: 'Missing order id' }, { status: 400 });
+
+    const user = await getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!['owner', 'manager', 'superadmin'].includes(user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const order = await getOrderById(Number(id));
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+
+    if (user.role !== 'superadmin') {
+      const userWithTeam = await getUserWithTeam(user.id);
+      if (!userWithTeam?.teamId || userWithTeam.teamId !== order.teamId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
+    if (user.role === 'manager') {
+      const keys = Object.keys(data);
+      if (keys.length !== 1 || keys[0] !== 'status') {
+        return NextResponse.json({ error: 'Managers can only update order status' }, { status: 403 });
+      }
+    }
+
     if (data.subtotal !== undefined || data.taxes !== undefined) {
       const subtotal = Number(data.subtotal) || 0;
       const fees = Number(data.taxes) || 0;
@@ -79,6 +101,23 @@ export async function DELETE(req: NextRequest) {
   try {
     const { id } = await req.json();
     if (!id) return NextResponse.json({ error: 'Missing order id' }, { status: 400 });
+    const user = await getUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    if (user.role !== 'owner' && user.role !== 'superadmin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (user.role !== 'superadmin') {
+      const [order, userWithTeam] = await Promise.all([
+        getOrderById(Number(id)),
+        getUserWithTeam(user.id)
+      ]);
+      if (!order || !userWithTeam?.teamId || userWithTeam.teamId !== order.teamId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     const deleted = await deleteOrder(Number(id));
     return NextResponse.json({ success: true, order: deleted });
   } catch (e) {

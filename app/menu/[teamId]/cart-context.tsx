@@ -29,6 +29,19 @@ export function computeLineTotal(item: CartItem): number {
   return (base + sizePrice + extrasPrice + additionsPrice) * item.quantity;
 }
 
+export function computeAmountWithFee(
+  amount: number,
+  feePercent: number,
+  feeFixed: number,
+  applyFee: boolean = true
+): number {
+  if (!applyFee || amount <= 0) {
+    return amount;
+  }
+
+  return amount + (amount * feePercent / 100) + feeFixed;
+}
+
 // Nuevo: calcula el total de la línea con fees
 export function computeLineTotalWithFee(
   item: CartItem,
@@ -40,10 +53,12 @@ export function computeLineTotalWithFee(
   const sizePrice = item.selectedSize ? parseFloat(item.selectedSize.price ?? '0') : 0;
   const extrasPrice = item.selectedExtras.reduce((s, e) => s + parseFloat(e.price ?? '0'), 0);
   const additionsPrice = item.selectedAdditions.reduce((s, a) => s + parseFloat(a.price ?? '0'), 0);
-  let subtotal = base + sizePrice + extrasPrice + additionsPrice;
-  if (applyFee) {
-    subtotal = subtotal + (subtotal * feePercent / 100) + feeFixed;
-  }
+  const subtotal = computeAmountWithFee(
+    base + sizePrice + extrasPrice + additionsPrice,
+    feePercent,
+    feeFixed,
+    applyFee
+  );
   return subtotal * item.quantity;
 }
 

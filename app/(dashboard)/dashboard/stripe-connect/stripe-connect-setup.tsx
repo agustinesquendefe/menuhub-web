@@ -75,7 +75,6 @@ export function StripeConnectSetup({
 
   return (
     <div className="space-y-6">
-      {/* Status Card */}
       <Card className="p-6 border-l-4 border-l-orange-500">
         <div className="flex items-start gap-4">
           {status === 'configured' ? (
@@ -89,86 +88,82 @@ export function StripeConnectSetup({
           <div className="flex-1">
             <h3 className="font-semibold text-lg">
               {status === 'configured'
-                ? 'Cuenta Conectada'
+                ? 'Connected account'
                 : status === 'loading'
-                ? 'Cargando...'
-                : 'Configuración Pendiente'}
+                ? 'Loading...'
+                : 'Setup pending'}
             </h3>
             <p className="text-gray-600 mt-1">
               {status === 'configured'
-                ? 'Tu cuenta de Stripe Connect está configurada y lista para recibir pagos de tus clientes.'
+                ? 'Your Stripe Connect account is configured and ready to receive customer payments.'
                 : status === 'loading'
-                ? 'Verificando el estado de tu cuenta...'
-                : 'Completa la configuración de tu cuenta de Stripe Connect para comenzar a recibir pagos.'}
+                ? 'Checking your account status...'
+                : 'Complete your Stripe Connect account setup to start receiving payments.'}
             </p>
           </div>
         </div>
       </Card>
 
-      {/* What is Stripe Connect */}
       <Card className="p-6">
-        <h3 className="font-semibold text-lg mb-4">¿Qué es Stripe Connect?</h3>
+        <h3 className="font-semibold text-lg mb-4">What is Stripe Connect?</h3>
         <ul className="space-y-3 text-gray-700">
           <li className="flex gap-3">
             <span className="text-orange-500 font-bold">•</span>
-            <span>Recibe pagos directamente en tu cuenta bancaria por cada orden</span>
+            <span>Receive payments directly into your bank account for each order</span>
           </li>
           <li className="flex gap-3">
             <span className="text-orange-500 font-bold">•</span>
-            <span>Tus clientes pagan a través de métodos seguros</span>
+            <span>Your customers pay through secure methods</span>
           </li>
           <li className="flex gap-3">
             <span className="text-orange-500 font-bold">•</span>
-            <span>Acceso a reportes detallados de transacciones</span>
+            <span>Access detailed transaction reports</span>
           </li>
           <li className="flex gap-3">
             <span className="text-orange-500 font-bold">•</span>
-            <span>Procesamiento rápido y seguro con Stripe</span>
+            <span>Fast and secure processing with Stripe</span>
           </li>
         </ul>
       </Card>
 
-      {/* Setup Instructions */}
       {status !== 'configured' && (
         <Card className="p-6 bg-blue-50 border-blue-200">
-          <h3 className="font-semibold text-lg mb-4">Pasos para Configurar</h3>
+          <h3 className="font-semibold text-lg mb-4">Setup steps</h3>
           <ol className="space-y-3 text-gray-700">
             <li className="flex gap-3">
               <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
                 1
               </span>
-              <span>Haz clic en el botón "Configurar Stripe Connect" abajo</span>
+              <span>Click the "Set up Stripe Connect" button below</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
                 2
               </span>
-              <span>Completa tu información personal y bancaria</span>
+              <span>Complete your personal and banking information</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
                 3
               </span>
-              <span>Verifica tu identidad si es necesario</span>
+              <span>Verify your identity if needed</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm flex-shrink-0">
                 4
               </span>
-              <span>¡Listo! Comienza a recibir pagos</span>
+              <span>Done. Start receiving payments</span>
             </li>
           </ol>
         </Card>
       )}
 
-      {/* Error Message */}
       {error && (
         <Card className="p-4 bg-red-50 border-red-200">
           <p className="text-red-800">{error}</p>
         </Card>
       )}
 
-      {/* Setup Button */}
       {status !== 'configured' && (
         <Button
           onClick={handleSetupConnect}
@@ -176,11 +171,10 @@ export function StripeConnectSetup({
           size="lg"
           className="w-full"
         >
-          {loading ? 'Redirigiendo...' : 'Configurar Stripe Connect'}
+          {loading ? 'Redirecting...' : 'Set up Stripe Connect'}
         </Button>
       )}
 
-      {/* Refresh Button */}
       {status === 'not-configured' && (
         <Button
           onClick={handleRefresh}
@@ -190,19 +184,18 @@ export function StripeConnectSetup({
           className="w-full mt-2"
         >
           <RefreshCw className="w-4 h-4 mr-2" />
-          {refreshing ? 'Actualizando...' : 'Actualizar Estado'}
+          {refreshing ? 'Refreshing...' : 'Refresh status'}
         </Button>
       )}
 
-      {/* Account Info */}
       {status === 'configured' && accountId && (
         <Card className="p-6 bg-green-50 border-green-200">
-          <h3 className="font-semibold text-lg mb-2">ID de Cuenta</h3>
+          <h3 className="font-semibold text-lg mb-2">Account ID</h3>
           <code className="text-sm bg-white p-3 rounded border border-green-300 break-all block">
             {accountId}
           </code>
           <p className="text-sm text-gray-600 mt-4">
-            Tu plataforma ahora puede procesar pagos de tus clientes. Los fondos se transferirán a tu cuenta bancaria según tu configuración.
+            Your platform can now process customer payments. Funds will be transferred to your bank account according to your setup.
           </p>
           <Button
             onClick={handleRefresh}
@@ -212,7 +205,7 @@ export function StripeConnectSetup({
             className="mt-4"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            {refreshing ? 'Actualizando...' : 'Actualizar Configuración'}
+            {refreshing ? 'Refreshing...' : 'Refresh setup'}
           </Button>
         </Card>
       )}

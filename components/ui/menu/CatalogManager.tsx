@@ -15,8 +15,6 @@ import {
 import { Size, Extra, Addition } from "@/lib/db/schema";
 import { ActionState } from "@/lib/auth/middleware";
 
-// ─── Reusable inline item form ─────────────────────────────────────────────────
-
 function CatalogItemForm({
   onSubmit,
   pending,
@@ -39,11 +37,11 @@ function CatalogItemForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-wrap gap-2 items-end">
       <div className="flex-1 min-w-[140px]">
-        <Label className="text-xs">Nombre</Label>
+        <Label className="text-xs">Name</Label>
         <Input name="name" defaultValue={defaultValues?.name ?? ""} required className="mt-1 h-8 text-sm" />
       </div>
       <div className="w-28">
-        <Label className="text-xs">Precio</Label>
+        <Label className="text-xs">Price</Label>
         <Input
           name="price"
           type="number"
@@ -56,7 +54,7 @@ function CatalogItemForm({
         />
       </div>
       <div className="flex-1 min-w-[160px]">
-        <Label className="text-xs">Descripción (opcional)</Label>
+        <Label className="text-xs">Description (optional)</Label>
         <Input name="description" defaultValue={defaultValues?.description ?? ""} className="mt-1 h-8 text-sm" />
       </div>
       <div className="flex gap-1">
@@ -73,8 +71,6 @@ function CatalogItemForm({
     </form>
   );
 }
-
-// ─── Generic section for one catalog type ──────────────────────────────────────
 
 type CatalogItem = Size | Extra | Addition;
 
@@ -101,7 +97,6 @@ function CatalogSection({
   const [updateState, updateDispatch, updatePending] = useActionState<ActionState, FormData>(updateAction, { error: "" });
   const [deleteState, deleteDispatch, deletePending] = useActionState<ActionState, FormData>(deleteAction, { error: "" });
 
-  // Refresh after any successful action
   useEffect(() => {
     if (createState?.success || updateState?.success || deleteState?.success) {
       router.refresh();
@@ -119,7 +114,7 @@ function CatalogSection({
   }
 
   function handleDelete(id: number) {
-    if (!confirm(`¿Eliminar este elemento? Los productos que lo usen perderán esta asociación.`)) return;
+    if (!confirm(`Delete this item? Products using it will lose this association.`)) return;
     const fd = new FormData();
     fd.set("id", String(id));
     startDelete(() => deleteDispatch(fd));
@@ -129,9 +124,8 @@ function CatalogSection({
     <div className="space-y-3">
       <h3 className="font-semibold text-base">{title}</h3>
 
-      {/* Existing items */}
       {items.length === 0 ? (
-        <p className="text-sm text-gray-400">No hay elementos. Crea uno abajo.</p>
+        <p className="text-sm text-gray-400">No items yet. Create one below.</p>
       ) : (
         <div className="space-y-2">
           {items.map(item => (
@@ -141,7 +135,7 @@ function CatalogSection({
                   defaultValues={{ name: item.name, price: item.price ?? "0", description: item.description ?? "" }}
                   onSubmit={fd => handleUpdate(item.id, fd)}
                   pending={updatePending}
-                  submitLabel="Guardar"
+                  submitLabel="Save"
                   onCancel={() => setEditingId(null)}
                 />
               ) : (
@@ -176,21 +170,18 @@ function CatalogSection({
         </div>
       )}
 
-      {/* Create new item */}
       <div className="pt-2 border-t">
-        <p className="text-xs text-gray-500 mb-2">Agregar nuevo</p>
+        <p className="text-xs text-gray-500 mb-2">Add new</p>
         <CatalogItemForm
           onSubmit={handleCreate}
           pending={createPending}
-          submitLabel={`Agregar ${title}`}
+          submitLabel={`Add ${title}`}
         />
         {createState?.error && <p className="text-red-500 text-xs mt-1">{createState.error}</p>}
       </div>
     </div>
   );
 }
-
-// ─── Main CatalogManager ───────────────────────────────────────────────────────
 
 interface CatalogManagerProps {
   initialSizes: Size[];
@@ -202,12 +193,12 @@ export default function CatalogManager({ initialSizes, initialExtras, initialAdd
   return (
     <div className="space-y-8">
       <p className="text-sm text-gray-600">
-        Gestiona el catálogo compartido de opciones que puedes asignar a tus productos. Los precios se suman al total del pedido.
+        Manage the shared catalog of options you can assign to your products. Prices are added to the order total.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="p-4">
           <CatalogSection
-            title="Tamaños"
+            title="Sizes"
             items={initialSizes}
             createAction={createSize}
             updateAction={updateSize}
@@ -225,7 +216,7 @@ export default function CatalogManager({ initialSizes, initialExtras, initialAdd
         </Card>
         <Card className="p-4">
           <CatalogSection
-            title="Adiciones"
+            title="Add-ons"
             items={initialAdditions}
             createAction={createAddition}
             updateAction={updateAddition}

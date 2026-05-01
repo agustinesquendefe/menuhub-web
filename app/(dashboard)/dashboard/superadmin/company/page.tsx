@@ -10,7 +10,7 @@ export default async function CompanyPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Configuración de la compañía</h1>
+      <h1 className="text-2xl font-bold mb-6">Company Settings</h1>
       <CompanyForm />
     </div>
   );

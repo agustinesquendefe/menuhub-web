@@ -23,7 +23,7 @@ export default function CompanyFeesManager({ companyId }: { companyId: number })
     setForm({ country: '', state: '', feePercent: '', feeFixed: '', currency: 'USD' });
   }
   async function handleDelete(id: number) {
-    if (!confirm('¿Eliminar este fee?')) return;
+    if (!confirm('Delete this fee?')) return;
     await fetch(`/api/company-fees?id=${id}`, { method: 'DELETE' });
     setFees(fees.filter(f => f.id !== id));
     handleCancel();
@@ -47,16 +47,16 @@ export default function CompanyFeesManager({ companyId }: { companyId: number })
 
   return (
     <div className="border rounded p-4 bg-white mt-6">
-      <h2 className="font-bold mb-2">Fees por país/estado</h2>
-      {loading ? <div>Cargando...</div> : (
+      <h2 className="font-bold mb-2">Fees by country/state</h2>
+      {loading ? <div>Loading...</div> : (
         <table className="min-w-full text-sm mb-4">
           <thead>
             <tr>
-              <th>País</th>
-              <th>Estado</th>
+              <th>Country</th>
+              <th>State</th>
               <th>Fee (%)</th>
-              <th>Fee fijo</th>
-              <th>Moneda</th>
+              <th>Fixed fee</th>
+              <th>Currency</th>
               <th></th>
             </tr>
           </thead>
@@ -69,8 +69,8 @@ export default function CompanyFeesManager({ companyId }: { companyId: number })
                 <td>{fee.feeFixed}</td>
                 <td>{fee.currency}</td>
                 <td>
-                  <button className="text-blue-600 mr-2" onClick={() => handleEdit(fee)}>Editar</button>
-                  <button className="text-red-600" onClick={() => handleDelete(fee.id)}>Eliminar</button>
+                  <button className="text-blue-600 mr-2" onClick={() => handleEdit(fee)}>Edit</button>
+                  <button className="text-red-600" onClick={() => handleDelete(fee.id)}>Delete</button>
                 </td>
               </tr>
             ))}
@@ -79,11 +79,11 @@ export default function CompanyFeesManager({ companyId }: { companyId: number })
       )}
       <form className="flex flex-wrap gap-2 items-end" onSubmit={handleSubmit}>
         <div>
-          <label className="block text-xs">País</label>
+          <label className="block text-xs">Country</label>
           <input className="border rounded px-2 py-1 text-sm" name="country" value={form.country} onChange={e => setForm({ ...form, country: e.target.value.toUpperCase() })} maxLength={2} required />
         </div>
         <div>
-          <label className="block text-xs">Estado (opcional)</label>
+          <label className="block text-xs">State (optional)</label>
           <input className="border rounded px-2 py-1 text-sm" name="state" value={form.state || ''} onChange={e => setForm({ ...form, state: e.target.value.toUpperCase() })} maxLength={2} />
         </div>
         <div>
@@ -91,15 +91,15 @@ export default function CompanyFeesManager({ companyId }: { companyId: number })
           <input className="border rounded px-2 py-1 text-sm" name="feePercent" type="number" step="0.001" value={form.feePercent} onChange={e => setForm({ ...form, feePercent: e.target.value })} required />
         </div>
         <div>
-          <label className="block text-xs">Fee fijo</label>
+          <label className="block text-xs">Fixed fee</label>
           <input className="border rounded px-2 py-1 text-sm" name="feeFixed" type="number" step="0.01" value={form.feeFixed} onChange={e => setForm({ ...form, feeFixed: e.target.value })} />
         </div>
         <div>
-          <label className="block text-xs">Moneda</label>
+          <label className="block text-xs">Currency</label>
           <input className="border rounded px-2 py-1 text-sm" name="currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value.toUpperCase() })} maxLength={8} required />
         </div>
-        <button type="submit" className="bg-orange-600 text-white text-sm hover:bg-orange-700 px-3 py-1 rounded mt-5 cursor-pointer">{editing ? 'Actualizar' : 'Agregar'}</button>
-        {editing && <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={handleCancel}>Cancelar</button>}
+        <button type="submit" className="bg-orange-600 text-white text-sm hover:bg-orange-700 px-3 py-1 rounded mt-5 cursor-pointer">{editing ? 'Update' : 'Add'}</button>
+        {editing && <button type="button" className="ml-2 px-3 py-1 rounded border" onClick={handleCancel}>Cancel</button>}
         {error && <span className="text-red-600 text-xs ml-2">{error}</span>}
       </form>
     </div>

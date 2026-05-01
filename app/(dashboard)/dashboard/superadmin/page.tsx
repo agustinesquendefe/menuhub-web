@@ -13,9 +13,9 @@ export default async function SuperadminPage() {
 
   return (
     <div className="max-w-5xl mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">Panel Superadmin</h1>
+      <h1 className="text-2xl font-bold mb-6">Superadmin Panel</h1>
       <section className="mb-10">
-        <h2 className="text-xl font-semibold mb-2">Equipos registrados</h2>
+        <h2 className="text-xl font-semibold mb-2">Registered teams</h2>
         <TeamsTable />
       </section>
       <section>

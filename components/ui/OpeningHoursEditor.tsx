@@ -1,13 +1,13 @@
 import { useState } from 'react';
 
 const WEEK_DAYS = [
-  { key: 'monday', label: 'Lunes' },
-  { key: 'tuesday', label: 'Martes' },
-  { key: 'wednesday', label: 'Miércoles' },
-  { key: 'thursday', label: 'Jueves' },
-  { key: 'friday', label: 'Viernes' },
-  { key: 'saturday', label: 'Sábado' },
-  { key: 'sunday', label: 'Domingo' },
+  { key: 'monday', label: 'Monday' },
+  { key: 'tuesday', label: 'Tuesday' },
+  { key: 'wednesday', label: 'Wednesday' },
+  { key: 'thursday', label: 'Thursday' },
+  { key: 'friday', label: 'Friday' },
+  { key: 'saturday', label: 'Saturday' },
+  { key: 'sunday', label: 'Sunday' },
 ];
 
 export interface OpeningHoursDay {
@@ -20,10 +20,20 @@ export interface OpeningHours {
   [key: string]: OpeningHoursDay;
 }
 
+function formatHour(hour: string, hourFormat: '24h' | '12h') {
+  if (!hour) return '';
+  if (hourFormat === '24h') return hour;
+  const [h, m] = hour.split(':');
+  const date = new Date();
+  date.setHours(Number(h));
+  date.setMinutes(Number(m));
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+}
+
 export function OpeningHoursEditor({
   value,
   onChange,
-  hourFormat = '24h',
+  hourFormat = '12h',
 }: {
   value: OpeningHours;
   onChange: (val: OpeningHours) => void;
@@ -47,10 +57,10 @@ export function OpeningHoursEditor({
     <table className="w-full text-sm border rounded-xl overflow-hidden">
       <thead>
         <tr className="bg-gray-100">
-          <th className="p-2 text-left">Día</th>
-          <th className="p-2 text-center">Abierto</th>
-          <th className="p-2 text-center">Hora de apertura</th>
-          <th className="p-2 text-center">Hora de cierre</th>
+          <th className="p-2 text-left">Day</th>
+          <th className="p-2 text-center">Open</th>
+          <th className="p-2 text-center">Opening time ({hourFormat})</th>
+          <th className="p-2 text-center">Closing time ({hourFormat})</th>
         </tr>
       </thead>
       <tbody>
@@ -68,21 +78,29 @@ export function OpeningHoursEditor({
               <input
                 type="time"
                 className="border rounded px-2 py-1"
+                lang={hourFormat === '12h' ? 'en-US' : undefined}
                 value={local[key]?.open ?? ''}
                 onChange={e => handleChange(key, 'open', e.target.value)}
                 disabled={!local[key]?.enabled}
                 step="900"
               />
+              {local[key]?.enabled && local[key]?.open && (
+                <div className="mt-1 text-xs text-gray-500">{formatHour(local[key].open, hourFormat)}</div>
+              )}
             </td>
             <td className="p-2 text-center">
               <input
                 type="time"
                 className="border rounded px-2 py-1"
+                lang={hourFormat === '12h' ? 'en-US' : undefined}
                 value={local[key]?.close ?? ''}
                 onChange={e => handleChange(key, 'close', e.target.value)}
                 disabled={!local[key]?.enabled}
                 step="900"
               />
+              {local[key]?.enabled && local[key]?.close && (
+                <div className="mt-1 text-xs text-gray-500">{formatHour(local[key].close, hourFormat)}</div>
+              )}
             </td>
           </tr>
         ))}

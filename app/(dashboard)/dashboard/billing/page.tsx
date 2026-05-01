@@ -16,12 +16,12 @@ export const metadata = {
 };
 
 const subscriptionLabels: Record<string, string> = {
-  active: 'Activa',
-  trialing: 'Periodo de prueba',
-  past_due: 'Pago pendiente',
-  unpaid: 'Impaga',
-  canceled: 'Cancelada',
-  incomplete: 'Incompleta'
+  active: 'Active',
+  trialing: 'Trialing',
+  past_due: 'Past due',
+  unpaid: 'Unpaid',
+  canceled: 'Canceled',
+  incomplete: 'Incomplete'
 };
 
 export default async function BillingPage() {
@@ -37,7 +37,7 @@ export default async function BillingPage() {
   const team = await getTeamForUser();
   const subscriptionStatus = team?.subscriptionStatus || 'inactive';
   const statusLabel =
-    subscriptionLabels[subscriptionStatus] || 'Sin suscripción activa';
+    subscriptionLabels[subscriptionStatus] || 'No active subscription';
   const hasStripeCustomer = Boolean(
     team?.stripeCustomerId && team?.stripeProductId
   );
@@ -49,7 +49,7 @@ export default async function BillingPage() {
           Billing
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Administra los pagos y la suscripción de MenuHub para tu restaurante.
+          Manage MenuHub payments and subscription for your restaurant.
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export default async function BillingPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Suscripción
+            Subscription
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -67,7 +67,7 @@ export default async function BillingPage() {
                 Plan actual: {team?.planName || 'Free'}
               </p>
               <p className="text-sm text-muted-foreground">
-                Estado: {statusLabel}
+                Status: {statusLabel}
               </p>
             </div>
 
@@ -75,12 +75,12 @@ export default async function BillingPage() {
               <form action={customerPortalAction}>
                 <Button type="submit" variant="outline">
                   <ExternalLink className="h-4 w-4" />
-                  Administrar suscripción
+                  Manage subscription
                 </Button>
               </form>
             ) : (
               <Button asChild>
-                <Link href="/pricing">Elegir plan</Link>
+                <Link href="/pricing">Choose plan</Link>
               </Button>
             )}
           </div>

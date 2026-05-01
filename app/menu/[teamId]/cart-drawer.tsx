@@ -13,7 +13,6 @@ interface CartDrawerProps {
 
 export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartDrawerProps) {
   const { items, removeItem, updateQuantity, clearCart } = useCart();
-  // Asumimos que todos los productos son del mismo país (del team), tomamos el primero
   const { feePercent, feeFixed } = useProviderFee(teamCountry);
   const totalPrice = items.reduce((s, i) => s + computeLineTotalWithFee(i, feePercent, feeFixed), 0);
 
@@ -29,12 +28,12 @@ export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartD
         <div className="flex items-center justify-between px-5 py-4 border-b shrink-0">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-5 h-5 text-orange-500" />
-            <h2 className="text-lg font-bold text-gray-900">Tu pedido</h2>
+            <h2 className="text-lg font-bold text-gray-900">Your order</h2>
           </div>
           <button
             onClick={onClose}
             className="cursor-pointer p-1.5 rounded-full hover:bg-gray-100"
-            aria-label="Cerrar carrito"
+            aria-label="Close cart"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -45,7 +44,7 @@ export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartD
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-16">
               <ShoppingCart className="w-12 h-12 text-gray-200" />
-              <p className="text-gray-400 text-sm">Tu carrito está vacío</p>
+              <p className="text-gray-400 text-sm">Your cart is empty</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -73,7 +72,7 @@ export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartD
                         <button
                           onClick={() => removeItem(item.cartId)}
                           className="cursor-pointer p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0"
-                          aria-label="Eliminar"
+                          aria-label="Remove"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -130,13 +129,13 @@ export function CartDrawer({ currency, onClose, onCheckout, teamCountry }: CartD
               onClick={() => { onCheckout(); onClose(); }}
               className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white font-semibold py-3 rounded-xl transition-all"
             >
-              Confirmar pedido
+              Checkout
             </button>
             <button
               onClick={clearCart}
               className="cursor-pointer w-full text-sm text-gray-400 hover:text-red-500 transition-colors py-1"
             >
-              Vaciar carrito
+              Clear cart
             </button>
           </div>
         )}

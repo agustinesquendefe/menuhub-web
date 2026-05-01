@@ -16,33 +16,33 @@ const POLICIES: {
 }[] = [
   {
     key: 'warnRawIngredients',
-    label: 'Aviso de ingredientes crudos',
-    description: 'Algunos platillos pueden contener ingredientes crudos o semicrudos (huevo, carne, pescado, etc.).',
+    label: 'Raw ingredients notice',
+    description: 'Some dishes may contain raw or undercooked ingredients (egg, meat, fish, etc.).',
   },
   {
     key: 'warnAllergens',
-    label: 'Aviso general de alérgenos',
-    description: 'Informe a su mesero sobre cualquier alergia o intolerancia alimentaria antes de ordenar.',
+    label: 'General allergen notice',
+    description: 'Tell your server about any food allergies or intolerances before ordering.',
   },
   {
     key: 'warnAlcohol',
-    label: 'Aviso de contenido de alcohol',
-    description: 'Algunos productos contienen alcohol. Prohibida la venta a menores de edad.',
+    label: 'Alcohol content notice',
+    description: 'Some products contain alcohol. Sale to minors is prohibited.',
   },
   {
     key: 'warnGluten',
-    label: 'Aviso de gluten',
-    description: 'Algunos productos contienen gluten. No apto para personas con enfermedad celiaca.',
+    label: 'Gluten notice',
+    description: 'Some products contain gluten. Not suitable for people with celiac disease.',
   },
   {
     key: 'warnNuts',
-    label: 'Aviso de frutos secos',
-    description: 'Algunos productos pueden contener o haber estado en contacto con frutos secos.',
+    label: 'Nut notice',
+    description: 'Some products may contain or have been in contact with nuts.',
   },
   {
     key: 'warnDairy',
-    label: 'Aviso de lácteos',
-    description: 'Algunos productos contienen leche o derivados lácteos.',
+    label: 'Dairy notice',
+    description: 'Some products contain milk or dairy derivatives.',
   },
 ];
 
@@ -68,7 +68,7 @@ export default function PoliciesForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card className="p-6 space-y-5">
-        <h2 className="font-semibold text-lg">Avisos y advertencias</h2>
+        <h2 className="font-semibold text-lg">Notices and warnings</h2>
         {POLICIES.map(({ key, label, description }) => (
           <div key={key} className="flex items-start gap-4 py-2 border-b last:border-0">
             <input
@@ -93,7 +93,7 @@ export default function PoliciesForm({
 
       <Button type="submit" disabled={pending} className="cursor-pointer">
         <Save className="w-4 h-4 mr-2" />
-        {pending ? 'Guardando...' : 'Guardar políticas'}
+        {pending ? 'Saving...' : 'Save policies'}
       </Button>
     </form>
   );

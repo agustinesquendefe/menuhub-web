@@ -21,13 +21,17 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function UserMenu() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { data: user } = useSWR<User>('/api/user', fetcher);
+  const { data: user, isLoading } = useSWR<User | null>('/api/user', fetcher);
   const router = useRouter();
 
   async function handleSignOut() {
     await signOut();
     mutate('/api/user');
     router.push('/');
+  }
+
+  if (isLoading || user === undefined) {
+    return <div className="h-9 w-24" />;
   }
 
   if (!user) {
@@ -40,7 +44,7 @@ function UserMenu() {
           Pricing
         </Link>
         <Button asChild className="rounded-full">
-          <Link href="/sign-up">Sign Up</Link>
+          <Link href="/pricing">Choose Plan</Link>
         </Button>
       </>
     );
@@ -69,44 +73,48 @@ function UserMenu() {
           <DropdownMenuItem className="cursor-pointer">
             <Link href="/dashboard/superadmin" className="flex w-full items-center">
               <ShieldAlert className="mr-2 h-4 w-4" />
-              <span>Panel Superadmin</span>
+              <span>Superadmin Panel</span>
             </Link>
           </DropdownMenuItem>
         )}
         <DropdownMenuItem className="cursor-pointer">
-          <Link href="/dashboard" className="flex w-full items-center">
+          <Link href={user.role === 'manager' ? '/dashboard/orders' : '/dashboard'} className="flex w-full items-center">
             <Home className="mr-2 h-4 w-4" />
-            <span>Dashboard</span>
+            <span>{user.role === 'manager' ? 'Orders' : 'Dashboard'}</span>
           </Link>
         </DropdownMenuItem>
-        {user.role !== 'superadmin' && (
+        {user.role !== 'superadmin' && user.role !== 'manager' && (
           <DropdownMenuItem className="cursor-pointer">
             <Link href="/dashboard/menu" className="flex w-full items-center">
               <UtensilsCrossed className="mr-2 h-4 w-4" />
-              <span>Menú</span>
+              <span>Menu</span>
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="cursor-pointer">
-          <Link href="/dashboard/policies" className="flex w-full items-center">
-            <ShieldAlert className="mr-2 h-4 w-4" />
-            <span>Políticas</span>
-          </Link>
-        </DropdownMenuItem>
+        {user.role !== 'manager' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/dashboard/policies" className="flex w-full items-center">
+              <ShieldAlert className="mr-2 h-4 w-4" />
+              <span>Policies</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         {user.role === 'superadmin' && (
           <DropdownMenuItem className="cursor-pointer">
             <Link href="/dashboard/stripe-connect" className="flex w-full items-center">
               <Settings className="mr-2 h-4 w-4" />
-              <span>Pagos (Stripe)</span>
+              <span>Payments (Stripe)</span>
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem className="cursor-pointer">
-          <Link href="/dashboard/general" className="flex w-full items-center">
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Configuración</span>
-          </Link>
-        </DropdownMenuItem>
+        {user.role !== 'manager' && (
+          <DropdownMenuItem className="cursor-pointer">
+            <Link href="/dashboard/general" className="flex w-full items-center">
+              <Settings className="mr-2 h-4 w-4" />
+              <span>Settings</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <form action={handleSignOut} className="w-full">
           <button type="submit" className="flex w-full">
             <DropdownMenuItem className="w-full flex-1 cursor-pointer">

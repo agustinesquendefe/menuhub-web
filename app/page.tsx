@@ -22,7 +22,7 @@ export default async function Home() {
   const name = companyInfo?.name || 'MenuHub';
   const description =
     companyInfo?.description ||
-    'Creamos menús digitales para restaurantes que quieren vender, cobrar y operar con una experiencia simple para sus clientes.';
+    'We build digital menus for restaurants that want to sell, charge, and operate with a simple experience for their customers.';
   const address = getCompanyAddress(companyInfo ?? null);
   const whatsappHref = getWhatsAppHref(companyInfo?.whatsappPhone);
 
@@ -44,19 +44,19 @@ export default async function Home() {
             )}
             <div className="min-w-0">
               <p className="font-bold truncate">{name}</p>
-              <p className="text-xs text-gray-500 truncate">Servicio de menú digital</p>
+              <p className="text-xs text-gray-500 truncate">Digital menu service</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/sign-in" className="text-sm text-gray-600 hover:text-gray-950">
-              Acceder
+              Sign in
             </Link>
-            <Link
+            {/* <Link
               href="/pricing"
               className="hidden sm:inline-flex h-9 items-center justify-center rounded-md bg-gray-950 px-4 text-sm font-semibold text-white hover:bg-gray-800"
             >
               Ver precios
-            </Link>
+            </Link> */}
           </div>
         </div>
       </header>
@@ -72,7 +72,7 @@ export default async function Home() {
               />
             )}
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-gray-950">
-              Contrata tu servicio de menú digital
+              Get your digital menu service
             </h1>
             <p className="mt-5 max-w-2xl text-lg text-gray-600 leading-8">
               {description}
@@ -83,7 +83,7 @@ export default async function Home() {
                   type="submit"
                   className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 rounded-md bg-orange-500 px-6 font-semibold text-white hover:bg-orange-600 cursor-pointer"
                 >
-                  Contratar servicio
+                  Start service
                   <ArrowRight className="h-4 w-4" />
                 </button>
               </form>
@@ -91,13 +91,13 @@ export default async function Home() {
                 href="/pricing"
                 className="inline-flex h-12 items-center justify-center rounded-md border border-gray-300 px-6 font-semibold text-gray-950 hover:bg-gray-50"
               >
-                Ver plan y precios
+                View plan and pricing
               </Link>
             </div>
           </div>
 
           <div className="rounded-xl border bg-gray-50 p-5 md:p-7">
-            <h2 className="text-xl font-bold">Información de la compañía</h2>
+            <h2 className="text-xl font-bold">Company information</h2>
             <div className="mt-5 space-y-3 text-sm text-gray-700">
               {companyInfo?.contactEmail && (
                 <a href={`mailto:${companyInfo.contactEmail}`} className="flex items-center gap-3 hover:text-orange-600">
@@ -122,9 +122,9 @@ export default async function Home() {
 
             <div className="mt-7 border-t pt-6 space-y-4">
               {[
-                'Menú público para compartir por QR o enlace',
-                'Carrito y checkout para recibir pedidos',
-                'Panel para administrar productos, órdenes y estados',
+                'Public menu to share by QR or link',
+                'Cart and checkout to receive orders',
+                'Dashboard to manage products, orders, and statuses',
               ].map(item => (
                 <div key={item} className="flex gap-3 text-sm text-gray-700">
                   <CheckCircle2 className="h-4 w-4 text-orange-500 mt-0.5 shrink-0" />
@@ -139,9 +139,9 @@ export default async function Home() {
       <section className="border-y bg-gray-50">
         <div className="mx-auto max-w-6xl px-5 py-10 grid gap-5 md:grid-cols-3">
           {[
-            ['Configuración', 'Preparamos tu menú con la información, precios e identidad de tu negocio.'],
-            ['Operación', 'Tus clientes consultan el menú, agregan productos y completan el pedido.'],
-            ['Seguimiento', 'Gestionas órdenes, pagos, estados y notificaciones desde el panel.'],
+            ['Setup', 'We prepare your menu with your business information, pricing, and brand identity.'],
+            ['Operations', 'Your customers browse the menu, add products, and complete the order.'],
+            ['Tracking', 'You manage orders, payments, statuses, and notifications from the dashboard.'],
           ].map(([title, copy]) => (
             <div key={title}>
               <h3 className="font-bold text-gray-950">{title}</h3>
@@ -152,10 +152,10 @@ export default async function Home() {
       </section>
 
       <footer className="mx-auto max-w-6xl px-5 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-sm text-gray-500">
-        <p>© {new Date().getFullYear()} {name}. Servicio de menú digital.</p>
+        <p>© {new Date().getFullYear()} {name}. Digital menu service.</p>
         <div className="flex gap-4">
-          <Link href="/pricing" className="hover:text-gray-950">Precios</Link>
-          <Link href="/sign-up" className="hover:text-gray-950">Crear cuenta</Link>
+          <Link href="/pricing" className="hover:text-gray-950">Pricing</Link>
+          <Link href="/sign-in" className="hover:text-gray-950">Sign in</Link>
         </div>
       </footer>
     </main>

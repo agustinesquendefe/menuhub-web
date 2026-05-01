@@ -9,19 +9,20 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TeamDataWithMembers, User } from '@/lib/db/schema';
 import { removeTeamMember, inviteTeamMember } from '@/app/(login)/actions';
 import useSWR from 'swr';
 import { Suspense } from 'react';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Loader2, PlusCircle } from 'lucide-react';
 
 type ActionState = {
   error?: string;
   success?: string;
+  inviteUrl?: string;
 };
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -141,6 +142,72 @@ function InviteTeamMemberSkeleton() {
   );
 }
 
+function PublicMenuQr() {
+  const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
+  const [origin, setOrigin] = useState('');
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  if (!teamData?.id) {
+    return null;
+  }
+
+  const stableUrl = origin ? `${origin}/m/${teamData.id}` : `/m/${teamData.id}`;
+  const currentMenuUrl =
+    origin && teamData.username
+      ? `${origin}/${teamData.username}`
+      : stableUrl;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(stableUrl)}`;
+
+  return (
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Menu QR Code</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="w-fit rounded-md border bg-white p-3">
+            <img
+              src={qrUrl}
+              alt={`Menu QR code for ${teamData.name}`}
+              className="h-40 w-40"
+            />
+          </div>
+          <div className="space-y-3 text-sm">
+            <div>
+              <p className="font-medium">Stable QR link</p>
+              <a
+                href={stableUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-orange-600 hover:underline"
+              >
+                {stableUrl}
+              </a>
+            </div>
+            <div>
+              <p className="font-medium">Current public menu</p>
+              <a
+                href={currentMenuUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="break-all text-muted-foreground hover:text-orange-600 hover:underline"
+              >
+                {currentMenuUrl}
+              </a>
+            </div>
+            <p className="text-muted-foreground">
+              This QR code will keep working even if you change the menu username.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function InviteTeamMember() {
   const { data: user } = useSWR<User>('/api/user', fetcher);
   const isOwner = user?.role === 'owner';
@@ -171,27 +238,24 @@ function InviteTeamMember() {
           </div>
           <div>
             <Label>Role</Label>
-            <RadioGroup
-              defaultValue="member"
-              name="role"
-              className="flex space-x-4"
-              disabled={!isOwner}
-            >
-              <div className="flex items-center space-x-2 mt-2">
-                <RadioGroupItem value="member" id="member" />
-                <Label htmlFor="member">Member</Label>
-              </div>
-              <div className="flex items-center space-x-2 mt-2">
-                <RadioGroupItem value="owner" id="owner" />
-                <Label htmlFor="owner">Owner</Label>
-              </div>
-            </RadioGroup>
+            <input type="hidden" name="role" value="manager" />
+            <p className="mt-2 text-sm text-muted-foreground">
+              Manager: can only view orders and update their status.
+            </p>
           </div>
           {inviteState?.error && (
             <p className="text-red-500">{inviteState.error}</p>
           )}
           {inviteState?.success && (
             <p className="text-green-500">{inviteState.success}</p>
+          )}
+          {inviteState?.inviteUrl && (
+            <div className="rounded-md border bg-gray-50 p-3 text-sm">
+              <p className="font-medium">Invitation link</p>
+              <p className="mt-1 break-all text-muted-foreground">
+                {inviteState.inviteUrl}
+              </p>
+            </div>
           )}
           <Button
             type="submit"
@@ -224,9 +288,21 @@ function InviteTeamMember() {
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const { data: user } = useSWR<User>('/api/user', fetcher);
+
+  useEffect(() => {
+    if (user?.role === 'manager') {
+      router.replace('/dashboard/orders');
+    }
+  }, [router, user?.role]);
+
   return (
     <section className="flex-1 p-4 lg:p-8">
       <h1 className="text-lg lg:text-2xl font-medium mb-6">Team Settings</h1>
+      <Suspense fallback={null}>
+        <PublicMenuQr />
+      </Suspense>
       <Suspense fallback={<TeamMembersSkeleton />}>
         <TeamMembers />
       </Suspense>

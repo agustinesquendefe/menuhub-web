@@ -68,7 +68,7 @@ export async function createCheckoutSession({
   const user = await getUser();
 
   if (!team || !user) {
-    redirect(`/sign-up?redirect=checkout&priceId=${subscriptionPriceId}`);
+    redirect('/pricing');
   }
 
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];

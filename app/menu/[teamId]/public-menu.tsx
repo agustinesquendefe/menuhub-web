@@ -7,7 +7,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { AlertTriangle, ShoppingCart, Plus, CheckCircle2 } from 'lucide-react';
 import { FaEnvelope, FaFacebook, FaInstagram, FaPhone, FaTiktok, FaWhatsapp, FaYoutube } from 'react-icons/fa';
 import AddToCartModal from './add-to-cart-modal';
-import { computeLineTotalWithFee } from './cart-context';
+import { computeAmountWithFee, computeLineTotalWithFee } from './cart-context';
 
 function getFullAddress(team: Team) {
   return [
@@ -26,7 +26,7 @@ function MapIframe({ address }: { address: string }) {
   return (
     <div className="w-full h-20 mt-2 rounded-xl overflow-hidden border border-gray-200">
       <iframe
-        title="Ubicación en mapa"
+        title="Map location"
         src={src}
         width="100%"
         height="100%"
@@ -58,14 +58,31 @@ function currencySymbol(currency: string | null | undefined): string {
   return currency + ' ';
 }
 
+function getChoicePrompt(product: ProductWithAssociations) {
+  const hasPricedSizes = product.sizes.some(
+    (size) => size.isActive && parseFloat(size.price ?? '0') > 0
+  );
+  const hasPricedExtras = product.extras.some(
+    (extra) => extra.isActive && parseFloat(extra.price ?? '0') > 0
+  );
+  const hasPricedAdditions = product.additions.some(
+    (addition) => addition.isActive && parseFloat(addition.price ?? '0') > 0
+  );
+
+  if (hasPricedSizes) return 'Choose size';
+  if (hasPricedExtras) return 'Choose extra';
+  if (hasPricedAdditions) return 'Choose addition';
+  return null;
+}
+
 function PolicyBadges({ policies }: { policies: TeamPolicy }) {
   const warnings: string[] = [];
-  if (policies.warnRawIngredients) warnings.push('Puede contener ingredientes crudos');
-  if (policies.warnAllergens) warnings.push('Informe sobre alergias antes de ordenar');
-  if (policies.warnAlcohol) warnings.push('Contiene alcohol — prohibido a menores');
-  if (policies.warnGluten) warnings.push('Puede contener gluten');
-  if (policies.warnNuts) warnings.push('Puede contener frutos secos');
-  if (policies.warnDairy) warnings.push('Puede contener lácteos');
+  if (policies.warnRawIngredients) warnings.push('May contain raw ingredients');
+  if (policies.warnAllergens) warnings.push('Please tell us about allergies before ordering');
+  if (policies.warnAlcohol) warnings.push('Contains alcohol. Not available to minors');
+  if (policies.warnGluten) warnings.push('May contain gluten');
+  if (policies.warnNuts) warnings.push('May contain nuts');
+  if (policies.warnDairy) warnings.push('May contain dairy');
   if (warnings.length === 0) return null;
 
   return (
@@ -73,7 +90,7 @@ function PolicyBadges({ policies }: { policies: TeamPolicy }) {
       <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
       <div>
         <p className="text-sm font-semibold text-amber-800 mb-1">
-          Avisos del establecimiento
+          Restaurant notices
         </p>
         <ul className="list-disc list-inside space-y-0.5">
           {warnings.map(w => (
@@ -101,12 +118,13 @@ function ProductCard({
   const currency = currencySymbol(product.currency);
   const { feePercent, feeFixed, isLoading } = useProviderFee(teamCountry);
   const basePrice = parseFloat(product.price ?? '0');
+  const choicePrompt = basePrice <= 0 ? getChoicePrompt(product) : null;
   let priceWithFee = basePrice;
   if ((feePercent > 0 || feeFixed > 0) && !isLoading) {
-    priceWithFee = basePrice + (basePrice * feePercent / 100) + feeFixed;
+    priceWithFee = computeAmountWithFee(basePrice, feePercent, feeFixed);
   }
+  const showsFee = !choicePrompt && (feePercent > 0 || feeFixed > 0) && basePrice > 0;
 
-  // Aseguramos que el producto tenga el campo teamCountry para el carrito
   const productWithCountry = { ...product, teamCountry };
 
   return (
@@ -132,17 +150,21 @@ function ProductCard({
             {product.allergenWarning && (
               <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">
                 <AlertTriangle className="w-3 h-3" />
-                Alérgenos
+                Allergens
               </span>
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {isLoading ? (
-              <span className="font-bold text-gray-400 animate-pulse">Cargando...</span>
+              <span className="font-bold text-gray-400 animate-pulse">Loading...</span>
+            ) : choicePrompt ? (
+              <span className="font-semibold text-sm text-orange-600">
+                {choicePrompt}
+              </span>
             ) : (
               <span className="font-bold text-gray-900">
                 {currency}{priceWithFee.toFixed(2)}
-                {(feePercent > 0 || feeFixed > 0) && (
+                {showsFee && (
                   <span className="ml-1 text-xs text-orange-500 font-normal">incl. fee</span>
                 )}
               </span>
@@ -150,7 +172,7 @@ function ProductCard({
             <button
               onClick={e => { e.stopPropagation(); onSelect(productWithCountry); }}
               className="cursor-pointer w-7 h-7 rounded-full bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center transition-colors shadow-sm"
-              aria-label={`Agregar ${product.name}`}
+              aria-label={`Add ${product.name}`}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -198,7 +220,7 @@ function CartIconButton({ onClick }: { onClick: () => void }) {
     <button
       onClick={onClick}
       className="cursor-pointer relative p-2 rounded-full hover:bg-gray-100 transition-colors"
-      aria-label="Abrir carrito"
+      aria-label="Open cart"
     >
       <ShoppingCart className="w-6 h-6 text-gray-600" />
       {totalItems > 0 && (
@@ -234,12 +256,12 @@ function FloatingCartButton({ currency, onClick, teamCountry }: { currency: stri
         </span>
       </div>
       <span className="font-semibold">
-        Ver pedido
+        View order
       </span>
       <span className="font-bold">{currency}
         {isLoading ? '...'
           : totalWithFee.toFixed(2)}
-        {(feePercent > 0 || feeFixed > 0) && !isLoading && (
+        {(feePercent > 0 || feeFixed > 0) && !isLoading && totalWithFee > 0 && (
           <span className="ml-1 text-xs text-orange-200 font-normal">incl. fee</span>
         )}
       </span>
@@ -272,16 +294,16 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
         <div className="bg-white rounded-2xl shadow-sm p-10 max-w-sm w-full space-y-4">
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
           <h2 className="text-2xl font-bold text-gray-900">
-            ¡Pago realizado!
+            Payment complete!
           </h2>
           <p className="text-gray-500 text-sm">
-            Tu pedido ha sido confirmado. Recibirás un email con el resumen.
+            Your order has been confirmed. You will receive an email with the summary.
           </p>
           <button
             onClick={() => router.replace(window.location.pathname)}
             className="cursor-pointer w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl transition-colors"
           >
-            Volver al menú
+            Back to menu
           </button>
         </div>
       </div>
@@ -304,11 +326,9 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
 
   return (
     <div className="w-full">
-      {/* Header con banner de fondo y logo a la izquierda */}
       <header className="w-full mx-auto bg-white border-b shadow-sm">
         <div className="relative w-full max-w-6xl mx-auto px-0 pb-4">
           
-          {/* Banner de fondo */}
           {team.bannerUrl && (
             <div className="w-full h-40 md:h-48 relative flex items-end justify-center overflow-hidden rounded-b-2xl" style={{ background: '#f9fafb' }}>
               <img
@@ -317,15 +337,12 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
                 className="w-full h-full object-cover object-center"
                 style={{ zIndex: 1 }}
               />
-              {/* Sombra para legibilidad */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
             </div>
           )}
 
-          {/* Grid para logo y datos */}
           <div className="w-full mt-6 grid grid-cols-1 md:grid-cols-5 gap-4 px-2 items-start">
             
-            {/* Columna 1: Logo */}
             <div className="flex justify-center md:justify-start md:col-span-1">
               {team.profilePictureUrl && (
                 <div className="rounded-2xl border border-gray-300 p-2" style={{ width: 180, height: 180 }}>
@@ -338,7 +355,6 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               )}
             </div>
 
-            {/* Columna 2-5: Datos del restaurante y contacto */}
             <div className="md:col-span-4 flex flex-col gap-4">
               
               <div className="flex flex-row items-start justify-between py-3 sm:px-0 px-4 rounded-xl">
@@ -362,17 +378,16 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
                   
                   <div className="">
                     {team.openingHours ? (
-                      <OpeningHoursPopover openingHours={typeof team.openingHours === 'string' ? JSON.parse(team.openingHours) : team.openingHours} />
+                      <OpeningHoursPopover openingHours={typeof team.openingHours === 'string' ? JSON.parse(team.openingHours) : team.openingHours} hourFormat="12h" />
                     ) : (
-                      'Horarios no configurados'
+                      'Hours not configured'
                     )}
                   </div>
 
-                  {/* Links de contacto/redes */}
                   <div className="flex flex-wrap gap-5 mt-3">
                     {team.callPhone && (
                       <a href={`tel:${team.callPhone}`} className="text-gray-700 hover:underline text-sm gap-1 flex items-center">
-                        <FaPhone size={14} /> Llamar
+                        <FaPhone size={14} /> Call
                       </a>
                     )}
                     {team.whatsappPhone && (
@@ -466,7 +481,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
         {/* Empty state */}
         {categories.length === 0 && (
           <p className="text-center text-gray-400 py-16">
-            El menú está vacío por el momento.
+            The menu is empty for now.
           </p>
         )}
 
@@ -509,7 +524,6 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
         />
       )}
 
-      {/* Footer público con dirección */}
       <footer className="mt-auto bg-white border-t py-8 px-4">
         <div className="max-w-2xl mx-auto flex flex-col items-center text-center gap-3">
 
@@ -543,7 +557,7 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
               target="_blank" 
               rel="noopener noreferrer"
               role="img"
-              aria-label="Dirección"
+              aria-label="Address"
               className='text-blue-500 hover:underline text-sm'
             >
               📍{getFullAddress(team)
@@ -551,11 +565,12 @@ function MenuContent({ team, categories, policies }: PublicMenuProps) {
             </a>
           )}
 
-          {/* {(company.name && (
-            <p className="text-xs text-gray-400 mt-4">
-              Powered by <a href="https://menuhub.xyz" target="_blank" rel="noopener noreferrer" className="hover:underline">{company.name}</a>
-            </p>
-          ))} */}
+          <p className="text-xs text-gray-400 mt-4">
+            Powered by{' '}
+            <a href="/" className="font-medium text-gray-500 hover:text-orange-600 hover:underline">
+              MenuHub
+            </a>
+          </p>
 
         </div>
       </footer>
